@@ -11,10 +11,6 @@ function formatEur(value: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 }
 
-function getInitials(name: string): string {
-  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-}
-
 function SectionStatusBadge({ approved, total, rejected }: { approved: number; total: number; rejected: number }) {
   if (approved === total && total > 0)
     return <Tag color="success" style={{ borderRadius: 20, fontWeight: 600, fontSize: 12 }}>Section validée</Tag>;
@@ -64,7 +60,6 @@ export default function ValidationPage() {
     return validation.sections.reduce((sum, s) => sum + s.fields.length, 0);
   }, [validation]);
 
-  // Track which section is visible
   useEffect(() => {
     if (!validation) return;
     const observers: IntersectionObserver[] = [];
@@ -149,22 +144,12 @@ export default function ValidationPage() {
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: 12,
-              background: 'var(--ih-primary)', color: 'var(--ih-accent)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 17, fontWeight: 700, flexShrink: 0, letterSpacing: '0.02em',
-            }}>
-              {getInitials(validation.investorName)}
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ih-text-primary)', lineHeight: 1.2, marginBottom: 4 }}>
+              {validation.investorName}
             </div>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ih-text-primary)', lineHeight: 1.2, marginBottom: 4 }}>
-                {validation.investorName}
-              </div>
-              <div style={{ fontSize: 13.5, color: 'var(--ih-text-secondary)' }}>
-                {subscription.fund} · {validation.part}
-              </div>
+            <div style={{ fontSize: 13.5, color: 'var(--ih-text-secondary)' }}>
+              {subscription.fund} · {validation.part}
             </div>
           </div>
           <Tag color="purple" style={{ borderRadius: 20, fontWeight: 600, fontSize: 12.5, padding: '3px 12px', marginTop: 4 }}>
@@ -235,7 +220,7 @@ export default function ValidationPage() {
                 : state === 'current' ? 'var(--ih-primary)'
                 : 'transparent';
               const cardBorder = isActive
-                ? `2px solid var(--ih-primary)`
+                ? '2px solid var(--ih-primary)'
                 : state === 'completed' ? '1px solid rgba(203,255,153,0.5)'
                 : '1px solid transparent';
               const titleColor =
@@ -257,8 +242,7 @@ export default function ValidationPage() {
                       display: 'flex', alignItems: 'center', gap: 12,
                       padding: '10px 12px', borderRadius: 12,
                       background: cardBg, border: cardBorder,
-                      cursor: 'pointer',
-                      transition: 'opacity 0.15s',
+                      cursor: 'pointer', transition: 'opacity 0.15s',
                     }}
                     onMouseEnter={e => { if (state === 'upcoming') (e.currentTarget as HTMLDivElement).style.background = 'var(--ih-bg)'; }}
                     onMouseLeave={e => { if (state === 'upcoming') (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
