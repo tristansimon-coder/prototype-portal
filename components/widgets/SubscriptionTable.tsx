@@ -1,8 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, Input, DatePicker, Dropdown } from 'antd';
+import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, EllipsisOutlined, ShoppingOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, EllipsisOutlined, ShoppingOutlined, UploadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 
@@ -33,7 +33,7 @@ function formatEur(value: number | null | undefined): string {
 function SellModal({ subscription, open, onClose }: { subscription: Subscription | null; open: boolean; onClose: () => void }) {
   const [salePrice, setSalePrice] = useState<number | null>(null);
   const [partsCount, setPartsCount] = useState<number | null>(null);
-  const [rib, setRib] = useState('');
+  const [ribFile, setRibFile] = useState<File | null>(null);
 
   if (!subscription) return null;
 
@@ -47,14 +47,14 @@ function SellModal({ subscription, open, onClose }: { subscription: Subscription
     onClose();
     setSalePrice(null);
     setPartsCount(null);
-    setRib('');
+    setRibFile(null);
   }
 
   function handleCancel() {
     onClose();
     setSalePrice(null);
     setPartsCount(null);
-    setRib('');
+    setRibFile(null);
   }
 
   return (
@@ -151,13 +151,18 @@ function SellModal({ subscription, open, onClose }: { subscription: Subscription
             RIB du vendeur
           </label>
           <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
-            Coordonnées bancaires pour la transmission des fonds suite à la cession
+            Document bancaire pour la transmission des fonds suite à la cession (PDF, JPG…)
           </div>
-          <Input
-            value={rib}
-            onChange={e => setRib(e.target.value)}
-            placeholder="IBAN / RIB du compte bénéficiaire"
-          />
+          <Upload
+            maxCount={1}
+            beforeUpload={file => { setRibFile(file); return false; }}
+            onRemove={() => setRibFile(null)}
+            accept=".pdf,.jpg,.jpeg,.png"
+          >
+            <Button icon={<UploadOutlined />} style={{ width: '100%' }}>
+              {ribFile ? ribFile.name : 'Déposer votre RIB'}
+            </Button>
+          </Upload>
         </div>
 
         {/* Calculated total */}
@@ -174,7 +179,7 @@ function SellModal({ subscription, open, onClose }: { subscription: Subscription
           <Button
             type="primary"
             onClick={handleSubmit}
-            disabled={!salePrice || !partsCount || !rib}
+            disabled={!salePrice || !partsCount || !ribFile}
           >
             Mettre en vente
           </Button>
