@@ -129,7 +129,7 @@ export function FundCard({ name, closeDate, image, description, docs }: FundCard
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg, #0D3D56 0%, #1A5C7A 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg, #0E2A32 0%, #1a4050 100%)' }}>
             <PictureOutlined style={{ fontSize: 48, color: 'rgba(255,255,255,0.4)' }} />
           </div>
         )}
@@ -915,8 +915,8 @@ function ChartInner({ data, width, height }: ChartInnerProps) {
       <svg width={width} height={height}>
         <defs>
           <linearGradient id="navGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0D3D56" stopOpacity={0.15} />
-            <stop offset="100%" stopColor="#0D3D56" stopOpacity={0} />
+            <stop offset="0%" stopColor="#0E2A32" stopOpacity={0.15} />
+            <stop offset="100%" stopColor="#0E2A32" stopOpacity={0} />
           </linearGradient>
         </defs>
         <Group left={margin.left} top={margin.top}>
@@ -945,7 +945,7 @@ function ChartInner({ data, width, height }: ChartInnerProps) {
             data={data}
             x={d => xScale(d.date) ?? 0}
             y={d => yScale(d.nav)}
-            stroke="#0D3D56"
+            stroke="#0E2A32"
             strokeWidth={2.5}
             curve={curveMonotoneX}
           />
@@ -977,7 +977,7 @@ function ChartInner({ data, width, height }: ChartInnerProps) {
               cx={xScale(tooltipData.date) ?? 0}
               cy={yScale(tooltipData.nav)}
               r={5}
-              fill="#0D3D56"
+              fill="#0E2A32"
               stroke="white"
               strokeWidth={2}
               style={{ pointerEvents: 'none' }}
@@ -1001,7 +1001,7 @@ function ChartInner({ data, width, height }: ChartInnerProps) {
           left={tooltipLeft}
           style={{
             ...defaultStyles,
-            background: '#0D3D56',
+            background: '#0E2A32',
             color: 'white',
             borderRadius: 6,
             fontSize: 12,

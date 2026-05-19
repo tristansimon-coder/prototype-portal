@@ -27,7 +27,7 @@ export function FundCard({ id, name, closeDate, image, description, docs, detail
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg, #0D3D56 0%, #1A5C7A 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg, #0E2A32 0%, #1a4050 100%)' }}>
             <PictureOutlined style={{ fontSize: 48, color: 'rgba(255,255,255,0.4)' }} />
           </div>
         )}

@@ -2,8 +2,8 @@ import type { ThemeConfig } from 'antd';
 
 export const investHubTheme: ThemeConfig = {
   token: {
-    colorPrimary: '#0D3D56',
-    colorPrimaryHover: '#1A5C7A',
+    colorPrimary: '#0E2A32',
+    colorPrimaryHover: '#1a4050',
     colorSuccess: '#52c41a',
     colorWarning: '#faad14',
     colorError: '#ff4d4f',
@@ -15,17 +15,17 @@ export const investHubTheme: ThemeConfig = {
   components: {
     Button: {
       // Primary: navy filled, no shadow
-      colorPrimary: '#0D3D56',
-      colorPrimaryHover: '#1A5C7A',
-      colorPrimaryActive: '#0a2e40',
+      colorPrimary: '#0E2A32',
+      colorPrimaryHover: '#1a4050',
+      colorPrimaryActive: '#091e24',
       primaryColor: '#ffffff',
       primaryShadow: 'none',
       // Default (secondary): white + border, no shadow
       defaultBorderColor: '#D1D5DB',
       defaultColor: '#1A1A2E',
       defaultBg: '#ffffff',
-      defaultHoverBorderColor: '#0D3D56',
-      defaultHoverColor: '#0D3D56',
+      defaultHoverBorderColor: '#0E2A32',
+      defaultHoverColor: '#0E2A32',
       defaultHoverBg: '#ffffff',
       defaultShadow: 'none',
       boxShadow: 'none',

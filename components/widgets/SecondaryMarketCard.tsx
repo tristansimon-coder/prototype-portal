@@ -59,7 +59,7 @@ export function SecondaryMarketCard({ fund, part, shares, price, validUntil, ima
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt={fund} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isPending ? 'grayscale(60%)' : 'none' }} />
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg, #0D3D56, #1A5C7A)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg, #0E2A32, #1a4050)' }}>
             <PictureOutlined style={{ fontSize: 36, color: 'rgba(255,255,255,0.4)' }} />
           </div>
         )}

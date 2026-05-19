@@ -45,8 +45,8 @@ function SubSection({ title, children }: { title: string; children: ReactNode })
 }
 
 const colors = [
-  { name: '--ih-primary', hex: '#0D3D56', label: 'Primary (bleu marine)' },
-  { name: '--ih-primary-light', hex: '#1A5C7A', label: 'Primary light' },
+  { name: '--ih-primary', hex: '#0E2A32', label: 'Primary (bleu marine)' },
+  { name: '--ih-primary-light', hex: '#1a4050', label: 'Primary light' },
   { name: '--ih-accent', hex: '#CBFF99', label: 'Accent (lime)' },
   { name: '--ih-bg', hex: '#F5F7FA', label: 'Background' },
   { name: '--ih-bg-card', hex: '#FFFFFF', label: 'Card background' },
@@ -550,7 +550,7 @@ export function PerformanceChart({ data, height = 280 }) {
       {({ width }) => (
         <svg width={width} height={height}>
           <LinePath data={data} x={d => xScale(d.date)} y={d => yScale(d.nav)}
-            stroke="#0D3D56" strokeWidth={2.5} curve={curveMonotoneX} />
+            stroke="#0E2A32" strokeWidth={2.5} curve={curveMonotoneX} />
           <AxisBottom scale={xScale} />
           <AxisLeft scale={yScale} />
         </svg>
@@ -631,7 +631,7 @@ export function DocumentExplorer({ documents }) {
             </div>
           </WidgetWrapper>
 
-          <WidgetWrapper title="Progress" codeSource={`<Progress percent={65} strokeColor="#0D3D56" />
+          <WidgetWrapper title="Progress" codeSource={`<Progress percent={65} strokeColor="#0E2A32" />
 <Progress type="circle" percent={75} strokeColor="#CBFF99" />`}>
             <div style={{ paddingTop: 40, display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 200 }}>
