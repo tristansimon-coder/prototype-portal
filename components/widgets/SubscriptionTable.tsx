@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined, CheckCircleOutlined, AuditOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -461,7 +461,34 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
       title: 'Statut',
       dataIndex: 'status',
       key: 'status',
-      render: v => <StatusBadge status={v} />,
+      render: (v, record) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+          <StatusBadge status={v} />
+          {v === 'study' && (
+            <span
+              onClick={() => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 11.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+                color: 'var(--ih-primary)',
+                background: 'rgba(203,255,153,0.35)',
+                border: '1px solid rgba(203,255,153,0.8)',
+                borderRadius: 20,
+                padding: '2px 9px',
+                whiteSpace: 'nowrap',
+                letterSpacing: '0.01em',
+              }}
+            >
+              <AuditOutlined style={{ fontSize: 11 }} />
+              Validation partenaire →
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       title: 'Actions',
@@ -481,7 +508,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
             key: 'validate',
             label: 'Valider le dossier',
             icon: <CheckCircleOutlined />,
-            onClick: () => router.push(`/subscriptions/${record.id}/validation?persona=distributor`),
+            onClick: () => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`),
           },
           { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
         ];
@@ -557,6 +584,11 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
           pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (total) => `${total} souscription${total > 1 ? 's' : ''}` }}
           size="middle"
           style={{ borderRadius: 12, overflow: 'hidden', background: '#fff' }}
+          onRow={(record) => ({
+            style: record.status === 'study'
+              ? { background: 'rgba(203,255,153,0.07)', borderLeft: '3px solid rgba(203,255,153,0.9)' }
+              : {},
+          })}
           summary={() => (
             <Table.Summary.Row style={{ background: '#fff', fontWeight: 600 }}>
               <Table.Summary.Cell index={0} colSpan={summaryColSpanLabel}>
