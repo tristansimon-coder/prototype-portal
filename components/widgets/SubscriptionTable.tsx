@@ -418,6 +418,24 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         <div>
           <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>{record.fund}</div>
           {record.part && <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>{record.part}</div>}
+          {record.status === 'study' && (
+            <span
+              onClick={() => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                marginTop: 5,
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                color: '#92400e',
+                background: 'rgba(251,191,36,0.2)',
+                border: '1px solid rgba(245,158,11,0.5)',
+                borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap',
+                letterSpacing: '0.01em',
+              }}
+            >
+              <AuditOutlined style={{ fontSize: 10 }} />
+              Validation requise
+            </span>
+          )}
         </div>
       ),
     },
@@ -461,34 +479,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
       title: 'Statut',
       dataIndex: 'status',
       key: 'status',
-      render: (v, record) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-          <StatusBadge status={v} />
-          {v === 'study' && (
-            <span
-              onClick={() => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                fontSize: 11.5,
-                fontWeight: 600,
-                cursor: 'pointer',
-                color: 'var(--ih-primary)',
-                background: 'rgba(203,255,153,0.35)',
-                border: '1px solid rgba(203,255,153,0.8)',
-                borderRadius: 20,
-                padding: '2px 9px',
-                whiteSpace: 'nowrap',
-                letterSpacing: '0.01em',
-              }}
-            >
-              <AuditOutlined style={{ fontSize: 11 }} />
-              Validation partenaire →
-            </span>
-          )}
-        </div>
-      ),
+      render: (v) => <StatusBadge status={v} />,
     },
     {
       title: 'Actions',
@@ -586,7 +577,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
           style={{ borderRadius: 12, overflow: 'hidden', background: '#fff' }}
           onRow={(record) => ({
             style: record.status === 'study'
-              ? { background: 'rgba(203,255,153,0.07)', borderLeft: '3px solid rgba(203,255,153,0.9)' }
+              ? { background: 'rgba(251,191,36,0.05)', borderLeft: '3px solid #f59e0b' }
               : {},
           })}
           summary={() => (
