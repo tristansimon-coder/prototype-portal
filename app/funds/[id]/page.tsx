@@ -2,8 +2,8 @@
 import { Suspense, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Button, Tag, InputNumber, Select } from 'antd';
-import { CalendarOutlined, ArrowLeftOutlined, DownloadOutlined, PictureOutlined } from '@ant-design/icons';
-import { funds } from '@/data/mock';
+import { CalendarOutlined, ArrowLeftOutlined, DownloadOutlined, PictureOutlined, SwapOutlined } from '@ant-design/icons';
+import { funds, secondaryMarket } from '@/data/mock';
 
 const MOCK_INVESTORS = [
   { value: 'inv-1', label: 'Martin Dupont' },
@@ -23,9 +23,13 @@ function FundDetailInner() {
   const persona = searchParams.get('persona') ?? 'lp';
   const isDistributor = persona === 'distributor';
 
+  const offerId = searchParams.get('offerId') ? Number(searchParams.get('offerId')) : null;
+  const secondaryOffer = offerId ? (secondaryMarket.find(s => s.id === offerId) ?? null) : null;
+
   const fund = funds.find(f => f.id === Number(params.id));
   const [selectedClass, setSelectedClass] = useState(fund?.shareClasses[0]?.id ?? 'A');
   const [amount, setAmount] = useState<number | null>(null);
+  const [sharesInput, setSharesInput] = useState<number | null>(secondaryOffer ? secondaryOffer.shares : null);
   const [investor, setInvestor] = useState<string | null>(null);
 
   if (!fund) {
@@ -86,8 +90,148 @@ function FundDetailInner() {
           )}
         </div>
 
-        {/* Right — subscription panel */}
-        <div style={{ position: 'sticky', top: 32, background: 'white', borderRadius: 12, border: '1px solid var(--ih-border)', padding: 28 }}>
+        {/* Right panel — secondary offer OR subscription */}
+        {secondaryOffer ? (
+          // ── Secondary market purchase panel ──────────────────────────────
+          (() => {
+            const isCallOffer = secondaryOffer.fundType === 'call';
+            const calledPct = (secondaryOffer as { calledPct?: number }).calledPct ?? 0;
+            const engPer = (secondaryOffer as { engagementPerShare?: number }).engagementPerShare ?? 0;
+            const qty = sharesInput ?? 0;
+            const toPay = qty * secondaryOffer.price;
+            const toCall = isCallOffer ? qty * engPer : 0;
+            const total = toPay + toCall;
+            const canCommit = qty > 0 && (!isDistributor || investor !== null);
+            const selectedInvestorSec = MOCK_INVESTORS.find(i => i.value === investor);
+            return (
+              <div style={{ position: 'sticky', top: 32, background: 'white', borderRadius: 12, border: '1px solid var(--ih-border)', padding: 28 }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <SwapOutlined style={{ color: '#059669', fontSize: 14 }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Opportunité secondaire
+                  </span>
+                </div>
+                <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--ih-text-primary)', margin: '0 0 10px' }}>
+                  {secondaryOffer.fund} — {secondaryOffer.part}
+                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--ih-border)' }}>
+                  <CalendarOutlined style={{ color: 'var(--ih-text-secondary)', fontSize: 13 }} />
+                  <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>
+                    Disponible jusqu&apos;au {secondaryOffer.validUntil}
+                  </span>
+                </div>
+
+                {/* Distributor — investor selector */}
+                {isDistributor && (
+                  <div style={{ marginBottom: 20, padding: '12px 14px', background: '#F0F7FF', borderRadius: 8, border: '1px solid #BAD7FF' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0050A0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                      Achat pour un client
+                    </div>
+                    <Select
+                      placeholder="Sélectionner un investisseur"
+                      style={{ width: '100%' }}
+                      value={investor}
+                      onChange={setInvestor}
+                      options={MOCK_INVESTORS}
+                      showSearch
+                      filterOption={(input, opt) => (opt?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+                    />
+                  </div>
+                )}
+
+                {/* Called % progress */}
+                {isCallOffer && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>Montant appelé et payé</span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{calledPct}%</span>
+                    </div>
+                    <div style={{ height: 6, background: '#E5E7EB', borderRadius: 3 }}>
+                      <div style={{ width: `${calledPct}%`, height: '100%', background: 'var(--ih-primary)', borderRadius: 3 }} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Part badge */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>Type de part</div>
+                  <div
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 44, height: 44, borderRadius: 8,
+                      background: 'var(--ih-primary)', color: 'white', fontWeight: 700, fontSize: 15,
+                    }}
+                  >
+                    {secondaryOffer.part.replace('PART ', '')}
+                  </div>
+                </div>
+
+                {/* Price per share */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 2 }}>Prix par part</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ih-text-primary)' }}>{eur(secondaryOffer.price)}</div>
+                  {secondaryOffer.navPerShare && (
+                    <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginTop: 2 }}>
+                      VL : {eur(secondaryOffer.navPerShare)}{secondaryOffer.navDate ? ` (${secondaryOffer.navDate})` : ''}
+                    </div>
+                  )}
+                </div>
+
+                {/* Shares input */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 6 }}>Nombre de parts</div>
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    min={1}
+                    max={secondaryOffer.shares}
+                    value={sharesInput}
+                    onChange={setSharesInput}
+                    addonBefore="Parts"
+                    decimalSeparator=","
+                  />
+                  <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginTop: 4 }}>
+                    Disponible : {secondaryOffer.shares.toLocaleString('fr-FR')} parts
+                  </div>
+                </div>
+
+                {/* Engagement warning */}
+                {isCallOffer && engPer > 0 && qty > 0 && (
+                  <div style={{ marginBottom: 16, padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
+                    ⚠ En achetant ces parts, vous reprenez l&apos;engagement non appelé du vendeur. Des appels de fonds futurs pourront être émis jusqu&apos;à hauteur de {eur(toCall)}.
+                  </div>
+                )}
+
+                {/* Amounts */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 14, color: 'var(--ih-text-secondary)' }}>À payer :</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ih-text-primary)' }}>{eur(toPay)}</span>
+                </div>
+                {isCallOffer && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <span style={{ fontSize: 14, color: 'var(--ih-text-secondary)' }}>Restant à appeler :</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#d97706' }}>{eur(toCall)}</span>
+                  </div>
+                )}
+
+                {/* CTA */}
+                <Button
+                  type="primary"
+                  style={{ width: '100%', height: 48, fontSize: 15, fontWeight: 700, background: '#059669', borderColor: '#059669' }}
+                  disabled={!canCommit}
+                >
+                  {isDistributor
+                    ? selectedInvestorSec
+                      ? `S${isCallOffer ? '\'engager' : 'ouscrire'} pour ${selectedInvestorSec.label} — ${eur(total)}`
+                      : 'Sélectionner un investisseur'
+                    : `${isCallOffer ? 'S\'engager' : 'Acheter'} pour ${eur(total)}`}
+                </Button>
+              </div>
+            );
+          })()
+        ) : (
+          // ── Standard subscription panel ──────────────────────────────────
+          <div style={{ position: 'sticky', top: 32, background: 'white', borderRadius: 12, border: '1px solid var(--ih-border)', padding: 28 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--ih-text-primary)', margin: '0 0 10px' }}>{fund.name}</h1>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
@@ -206,6 +350,7 @@ function FundDetailInner() {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

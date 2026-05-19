@@ -57,6 +57,25 @@ export const funds = [
   },
   { id: 4, name: 'Fonds A', closeDate: undefined, image: null, fundType: 'direct' as const, description: [], about: [], longDescription: '', shareClasses: [{ id: 'A', label: 'Part A', shareValue: 1000, minimumSubscription: 5000 }], docs: [] },
   { id: 5, name: 'Fonds B', closeDate: undefined, image: null, fundType: 'call' as const, description: [], about: [], longDescription: '', shareClasses: [{ id: 'A', label: 'Part A', shareValue: 2000, minimumSubscription: 20000, engagementPerShare: 800 }], docs: [] },
+  {
+    id: 6,
+    name: 'Fonds Secondaire',
+    closeDate: undefined,
+    image: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80',
+    fundType: 'call' as const,
+    description: ['Cession de parts sur le marché secondaire', 'Capital partiellement appelé — engagement résiduel à reprendre'],
+    about: [
+      'Millésime 2021, en phase de gestion active avec 42% du capital appelé à ce jour.',
+      'Stratégie diversifiée couvrant 12 participations dans les secteurs tech et industrie.',
+      'Prochains appels de fonds estimés sur 24 mois, horizon de cession 2028.',
+    ],
+    longDescription: 'Fonds Secondaire est un véhicule fermé dont des parts sont proposées à la cession par des investisseurs existants via la plateforme de marché secondaire InvestHub. L\'acheteur reprend l\'engagement non appelé du cédant et bénéficie d\'une exposition immédiate au portefeuille sous-jacent.',
+    shareClasses: [
+      { id: 'A', label: 'Part A', shareValue: 118.50, minimumSubscription: 118.50, engagementPerShare: 68.50 },
+      { id: 'B', label: 'Part B', shareValue: 118.50, minimumSubscription: 118.50, engagementPerShare: 68.50 },
+    ],
+    docs: [],
+  },
 ];
 
 export const subscriptions = [
@@ -85,6 +104,7 @@ export const documents = [
 export const secondaryMarket = [
   {
     id: 1,
+    fundId: 6,
     fund: 'Fonds Secondaire',
     part: 'PART A',
     shares: 1000,
@@ -100,6 +120,7 @@ export const secondaryMarket = [
   },
   {
     id: 2,
+    fundId: 6,
     fund: 'Fonds Secondaire',
     part: 'PART B',
     shares: 500,
@@ -116,6 +137,7 @@ export const secondaryMarket = [
   },
   {
     id: 3,
+    fundId: 1,
     fund: 'Impact Growth II',
     part: 'PART A',
     shares: 250,

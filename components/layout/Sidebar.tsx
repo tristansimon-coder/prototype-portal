@@ -77,8 +77,9 @@ export function Sidebar() {
           const isActive =
             pathname === item.path ||
             (item.path !== '/home' && pathname.startsWith(item.path));
+          const href = persona !== 'lp' ? `${item.path}?persona=${persona}` : item.path;
           return (
-            <Link key={item.key} href={item.path} style={{ textDecoration: 'none' }}>
+            <Link key={item.key} href={href} style={{ textDecoration: 'none' }}>
               <div
                 style={{
                   display: 'flex',

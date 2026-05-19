@@ -1,13 +1,13 @@
 'use client';
 import { Suspense, useState } from 'react';
-import { Alert, Button, Drawer, Divider, Modal, Select, Tabs, Tag } from 'antd';
+import { Alert, Button, Drawer, Modal, Select, Tabs, Tag } from 'antd';
 import { CodeOutlined } from '@ant-design/icons';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SecondaryMarketCard } from '@/components/widgets/SecondaryMarketCard';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
 import { secondaryMarket } from '@/data/mock';
-import { SECONDARY_MARKET_CARD_CODE, BUY_MODAL_CODE, DETAILS_DRAWER_CODE } from '@/lib/code-sources';
+import { SECONDARY_MARKET_CARD_CODE, BUY_MODAL_CODE } from '@/lib/code-sources';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -153,119 +153,6 @@ function BuyModal({ offer, open, onClose, isDistributor }: { offer: Offer | null
   );
 }
 
-function DetailsDrawer({ offer, open, onClose, onBuy }: { offer: Offer | null; open: boolean; onClose: () => void; onBuy: () => void }) {
-  const [codeOpen, setCodeOpen] = useState(false);
-  if (!offer) return null;
-
-  const isCall = offer.fundType === 'call';
-  const totalValue = offer.navPerShare ? offer.navPerShare * offer.shares : null;
-  const totalToPay = offer.price * offer.shares;
-  const totalEngagement = (offer as { engagementPerShare?: number }).engagementPerShare
-    ? (offer as { engagementPerShare: number }).engagementPerShare * offer.shares
-    : null;
-  const totalExposure = totalEngagement ? totalToPay + totalEngagement : null;
-
-  function Row({ label, value, highlight, warning }: { label: string; value: string; highlight?: boolean; warning?: boolean }) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--ih-border)' }}>
-        <span style={{ color: warning ? '#d97706' : 'var(--ih-text-secondary)', fontSize: 13 }}>{label}</span>
-        <span style={{ fontWeight: highlight || warning ? 700 : 600, fontSize: highlight ? 15 : 14, color: warning ? '#d97706' : 'var(--ih-text-primary)' }}>{value}</span>
-      </div>
-    );
-  }
-
-  return (
-    <>
-    <Drawer
-      open={open}
-      onClose={onClose}
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Offre de cession</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ih-text-primary)' }}>{offer.fund} · {offer.part}</div>
-          </div>
-          <Button type="text" size="small" icon={<CodeOutlined />} onClick={() => setCodeOpen(true)} style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}>
-            Code
-          </Button>
-        </div>
-      }
-      width={480}
-      footer={
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button style={{ flex: 1 }} onClick={onClose}>Fermer</Button>
-          <Button type="primary" style={{ flex: 1 }} disabled={offer.status === 'pending'} onClick={() => { onClose(); onBuy(); }}>
-            {offer.status === 'pending' ? 'Achat en cours' : 'Acheter ces parts'}
-          </Button>
-        </div>
-      }
-    >
-      {/* Offer summary header */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '14px 16px', background: 'var(--ih-bg)', borderRadius: 10, marginBottom: 24, border: '1px solid var(--ih-border)' }}>
-        {offer.image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={offer.image} alt={offer.fund} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ih-text-primary)', marginBottom: 6 }}>{offer.fund} — {offer.part}</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <Tag color={isCall ? 'blue' : 'green'} style={{ fontSize: 11, margin: 0 }}>
-              {isCall ? 'Fonds à appel' : 'Paiement direct'}
-            </Tag>
-            <Tag color="default" style={{ fontSize: 11, margin: 0 }}>Validité : {offer.validUntil}</Tag>
-          </div>
-        </div>
-      </div>
-
-      {/* Section 1 — Valeur du sous-jacent */}
-      <Divider orientation="left" style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginTop: 0 }}>Valeur du sous-jacent</Divider>
-
-      <Row label="Nombre de parts cédées" value={offer.shares.toLocaleString('fr-FR')} />
-      {offer.navPerShare && (
-        <Row label={`VL par part${offer.navDate ? ` (${offer.navDate})` : ''}`} value={eur(offer.navPerShare)} highlight />
-      )}
-      {totalValue && <Row label="Valeur totale à date" value={eur(totalValue)} highlight />}
-
-      {isCall && (offer as { calledPct?: number }).calledPct !== undefined && (
-        <div style={{ padding: '8px 0', borderBottom: '1px solid var(--ih-border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ color: 'var(--ih-text-secondary)', fontSize: 13 }}>Capital appelé</span>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>{(offer as { calledPct: number }).calledPct}%</span>
-          </div>
-          <div style={{ height: 6, background: '#E5E7EB', borderRadius: 3 }}>
-            <div style={{ width: `${(offer as { calledPct: number }).calledPct}%`, height: '100%', background: 'var(--ih-primary)', borderRadius: 3 }} />
-          </div>
-        </div>
-      )}
-
-      {/* Section 2 — Conditions de l'offre */}
-      <Divider orientation="left" style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>Conditions de l&apos;offre</Divider>
-
-      <Row label="Prix de cession par part" value={eur(offer.price)} />
-      <Row label="Montant total à payer" value={eur(totalToPay)} highlight />
-      {isCall && totalEngagement !== null && (
-        <Row label="Engagement restant à reprendre" value={eur(totalEngagement)} warning />
-      )}
-      {isCall && totalExposure !== null && (
-        <Row label="Exposition économique totale" value={eur(totalExposure)} />
-      )}
-
-      {isCall && totalEngagement !== null && (
-        <div style={{ marginTop: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
-          ⚠ En achetant ces parts, vous reprenez l&apos;engagement non appelé du vendeur. Des appels de fonds futurs pourront être émis jusqu&apos;à hauteur de {eur(totalEngagement)}.
-        </div>
-      )}
-    </Drawer>
-
-    <Drawer open={codeOpen} onClose={() => setCodeOpen(false)} title="Code — DetailsDrawer" width={640} zIndex={1100}>
-      <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
-        {DETAILS_DRAWER_CODE}
-      </SyntaxHighlighter>
-    </Drawer>
-    </>
-  );
-}
-
 function SecondaryMarketInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -274,16 +161,19 @@ function SecondaryMarketInner() {
   const persona = searchParams.get('persona') ?? 'lp';
   const isDistributor = persona === 'distributor';
 
-  const modalType = searchParams.get('modal'); // 'buy' | 'details' | null
+  const modalType = searchParams.get('modal');
   const modalId = searchParams.get('id') ? Number(searchParams.get('id')) : null;
   const buyTarget = modalType === 'buy' && modalId ? (secondaryMarket.find(s => s.id === modalId) ?? null) : null;
-  const detailTarget = modalType === 'details' && modalId ? (secondaryMarket.find(s => s.id === modalId) ?? null) : null;
 
-  function openModal(type: 'buy' | 'details', offer: Offer) {
+  function openBuyModal(offer: Offer) {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('modal', type);
+    params.set('modal', 'buy');
     params.set('id', String(offer.id));
     router.replace(`${pathname}?${params.toString()}`);
+  }
+
+  function openDetails(offer: Offer) {
+    router.push(`/funds/${offer.fundId}?offerId=${offer.id}&persona=${persona}`);
   }
 
   function closeModal() {
@@ -320,20 +210,13 @@ function SecondaryMarketInner() {
               <SecondaryMarketCard
                 key={offer.id}
                 {...offer}
-                onBuy={() => openModal('buy', offer)}
-                onDetails={() => openModal('details', offer)}
+                onBuy={() => openBuyModal(offer)}
+                onDetails={() => openDetails(offer)}
               />
             ))}
           </div>
         </div>
       </WidgetWrapper>
-
-      <DetailsDrawer
-        offer={detailTarget}
-        open={detailTarget !== null}
-        onClose={closeModal}
-        onBuy={() => detailTarget && openModal('buy', detailTarget)}
-      />
 
       <BuyModal
         offer={buyTarget}
