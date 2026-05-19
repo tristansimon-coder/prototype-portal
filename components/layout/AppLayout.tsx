@@ -29,8 +29,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             background: 'var(--ih-bg)',
           }}
         >
-          {children}
+          <div style={{ maxWidth: 1600, margin: '0 auto' }}>
+            {children}
+          </div>
         </Content>
+
       </Layout>
     </Layout>
   );

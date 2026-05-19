@@ -1,10 +1,9 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Tree, Table, Tag, Space, Typography, Tooltip } from 'antd';
+import { Table, Tag, Space, Typography, Tooltip } from 'antd';
 import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import { DocumentIcon, FolderIcon } from '@/components/shared/Icons';
 import type { ColumnsType } from 'antd/es/table';
-import type { DataNode } from 'antd/es/tree';
 
 interface Document {
   id: number;
@@ -23,16 +22,6 @@ interface DocumentExplorerProps {
 export function DocumentExplorer({ documents }: DocumentExplorerProps) {
   const funds = useMemo(() => Array.from(new Set(documents.map(d => d.fund))), [documents]);
   const [selectedFund, setSelectedFund] = useState<string>(funds[0] ?? '');
-
-  const treeData: DataNode[] = useMemo(() => funds.map(fund => {
-    const count = documents.filter(d => d.fund === fund).length;
-    return {
-      key: fund,
-      title: `${fund} (${count})`,
-      icon: <FolderIcon size={16} />,
-      isLeaf: true,
-    };
-  }), [funds, documents]);
 
   const filtered = useMemo(() =>
     documents.filter(d => d.fund === selectedFund),
@@ -94,21 +83,42 @@ export function DocumentExplorer({ documents }: DocumentExplorerProps) {
       <div style={{
         width: 280, flexShrink: 0,
         background: 'var(--ih-bg-card)', borderRadius: 12,
-        border: '1px solid var(--ih-border)', padding: 16,
+        border: '1px solid var(--ih-border)',
+        overflow: 'hidden',
       }}>
-        <Typography.Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-secondary)', display: 'block', marginBottom: 12 }}>
-          Documents ({documents.length})
-        </Typography.Text>
-        <Tree
-          showIcon
-          defaultExpandAll
-          selectedKeys={[selectedFund]}
-          treeData={treeData}
-          onSelect={(keys) => {
-            if (keys[0]) setSelectedFund(String(keys[0]));
-          }}
-          style={{ background: 'transparent' }}
-        />
+        <div style={{ padding: '16px 16px 8px' }}>
+          <Typography.Text style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-secondary)', display: 'block' }}>
+            Documents ({documents.length})
+          </Typography.Text>
+        </div>
+        <div>
+          {funds.map(fund => {
+            const count = documents.filter(d => d.fund === fund).length;
+            const isActive = fund === selectedFund;
+            return (
+              <div
+                key={fund}
+                onClick={() => setSelectedFund(fund)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  background: isActive ? '#F0F2F5' : 'transparent',
+                  color: isActive ? 'var(--ih-text-primary)' : 'var(--ih-text-secondary)',
+                  fontWeight: isActive ? 500 : 400,
+                  fontSize: 13.5,
+                  transition: 'background 0.15s',
+                  userSelect: 'none',
+                }}
+              >
+                <FolderIcon size={16} />
+                <span>{fund} ({count})</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* File list */}
