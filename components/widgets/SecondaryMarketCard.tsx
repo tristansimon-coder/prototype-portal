@@ -60,11 +60,11 @@ export function SecondaryMarketCard({ fund, part, shares, price, validUntil, ima
 
       {/* Info rows */}
       <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column' }}>
+        <Row label="Nombre de parts" value={shares.toLocaleString('fr-FR')} />
         {navPerShare && <Row label={`Valeur par part${navDate ? ` (${navDate})` : ''}`} value={eur(navPerShare)} highlight />}
         <Row label="Prix par part (cession)" value={eur(price)} />
         {totalValue   && <Row label="Valeur totale à date" value={eur(totalValue)} highlight />}
         <Row label="Montant total à payer" value={eur(totalToPay)} />
-        <Row label="Nombre de parts" value={shares.toLocaleString('fr-FR')} />
         <Row label="Offre valable jusqu'au" value={validUntil} />
       </div>
 
