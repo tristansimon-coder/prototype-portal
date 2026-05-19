@@ -418,24 +418,6 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         <div>
           <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>{record.fund}</div>
           {record.part && <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>{record.part}</div>}
-          {isDistributor && record.status === 'study' && (
-            <span
-              onClick={() => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                marginTop: 5,
-                fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                color: '#92400e',
-                background: 'rgba(251,191,36,0.2)',
-                border: '1px solid rgba(245,158,11,0.5)',
-                borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap',
-                letterSpacing: '0.01em',
-              }}
-            >
-              <AuditOutlined style={{ fontSize: 10 }} />
-              Validation requise
-            </span>
-          )}
         </div>
       ),
     },
@@ -479,7 +461,28 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
       title: 'Statut',
       dataIndex: 'status',
       key: 'status',
-      render: (v) => <StatusBadge status={v} />,
+      render: (v, record) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <StatusBadge status={v} />
+          {isDistributor && v === 'study' && (
+            <span
+              onClick={() => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                color: '#92400e',
+                background: 'rgba(251,191,36,0.2)',
+                border: '1px solid rgba(245,158,11,0.5)',
+                borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap',
+                letterSpacing: '0.01em',
+              }}
+            >
+              <AuditOutlined style={{ fontSize: 10 }} />
+              Validation requise
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       title: 'Actions',
