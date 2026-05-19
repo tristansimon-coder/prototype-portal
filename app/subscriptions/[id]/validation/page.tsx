@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button, Modal, Input, Tag } from 'antd';
 import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -16,12 +16,10 @@ function getInitials(name: string): string {
 }
 
 function SectionStatusBadge({ approved, total, rejected }: { approved: number; total: number; rejected: number }) {
-  if (approved === total && total > 0) {
+  if (approved === total && total > 0)
     return <Tag color="success" style={{ borderRadius: 20, fontWeight: 600, fontSize: 12 }}>Section validée</Tag>;
-  }
-  if (rejected > 0) {
+  if (rejected > 0)
     return <Tag color="error" style={{ borderRadius: 20, fontWeight: 600, fontSize: 12 }}>{rejected} refusée{rejected > 1 ? 's' : ''}</Tag>;
-  }
   return <Tag color="warning" style={{ borderRadius: 20, fontWeight: 600, fontSize: 12 }}>En cours</Tag>;
 }
 
@@ -38,16 +36,16 @@ export default function ValidationPage() {
   const [fieldStatuses, setFieldStatuses] = useState<Record<string, FieldStatus>>({});
   const [reopenOpen, setReopenOpen] = useState(false);
   const [reopenMessage, setReopenMessage] = useState('');
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const sectionStats = useMemo(() => {
     if (!validation) return {};
     const stats: Record<string, { total: number; answered: number; approved: number; rejected: number }> = {};
     for (const section of validation.sections) {
-      let approved = 0;
-      let rejected = 0;
+      let approved = 0, rejected = 0;
       for (let i = 0; i < section.fields.length; i++) {
-        const key = `${section.id}-${i}`;
-        const st = fieldStatuses[key] ?? 'pending';
+        const st = fieldStatuses[`${section.id}-${i}`] ?? 'pending';
         if (st === 'approved') approved++;
         if (st === 'rejected') rejected++;
       }
@@ -64,6 +62,23 @@ export default function ValidationPage() {
   const totalFields = useMemo(() => {
     if (!validation) return 0;
     return validation.sections.reduce((sum, s) => sum + s.fields.length, 0);
+  }, [validation]);
+
+  // Track which section is visible
+  useEffect(() => {
+    if (!validation) return;
+    const observers: IntersectionObserver[] = [];
+    for (const section of validation.sections) {
+      const el = sectionRefs.current[section.id];
+      if (!el) continue;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(section.id); },
+        { threshold: 0.35 }
+      );
+      obs.observe(el);
+      observers.push(obs);
+    }
+    return () => observers.forEach(o => o.disconnect());
   }, [validation]);
 
   if (!validation || !subscription) {
@@ -87,17 +102,16 @@ export default function ValidationPage() {
     setFieldStatuses(prev => ({ ...prev, ...updates }));
   }
 
+  function scrollToSection(sectionId: string) {
+    sectionRefs.current[sectionId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function handleReopen() {
     setReopenOpen(false);
     setReopenMessage('');
     router.push(`/subscriptions?persona=${persona}`);
   }
 
-  function handleValidate() { router.push(`/subscriptions?persona=${persona}`); }
-
-  const progressPct = totalFields > 0 ? Math.round((totalApproved / totalFields) * 100) : 0;
-
-  // Determine step state for each section
   function getStepState(idx: number): 'completed' | 'current' | 'upcoming' {
     const s = validation.sections[idx];
     const stats = sectionStats[s.id] ?? { total: 0, approved: 0, rejected: 0 };
@@ -109,10 +123,11 @@ export default function ValidationPage() {
     return prevAllDone ? 'current' : 'upcoming';
   }
 
+  const progressPct = totalFields > 0 ? Math.round((totalApproved / totalFields) * 100) : 0;
+
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
 
-      {/* Back link */}
       <button
         onClick={() => router.push(`/subscriptions?persona=${persona}`)}
         style={{
@@ -189,10 +204,9 @@ export default function ValidationPage() {
         )}
       </div>
 
-      {/* Main layout: stepper sidebar + section cards */}
       <div style={{ display: 'grid', gridTemplateColumns: '236px 1fr', gap: 24, alignItems: 'start' }}>
 
-        {/* Sections stepper */}
+        {/* Sticky sections stepper */}
         <div style={{ position: 'sticky', top: 24 }}>
           <div style={{
             background: 'var(--ih-bg-card)', border: '1px solid var(--ih-border)',
@@ -205,6 +219,7 @@ export default function ValidationPage() {
 
             {validation.sections.map((section, idx) => {
               const state = getStepState(idx);
+              const isActive = activeSection === section.id;
               const isLast = idx === validation.sections.length - 1;
 
               const iconBg =
@@ -219,9 +234,9 @@ export default function ValidationPage() {
                 state === 'completed' ? 'rgba(203,255,153,0.12)'
                 : state === 'current' ? 'var(--ih-primary)'
                 : 'transparent';
-              const cardBorder =
-                state === 'completed' ? '1px solid rgba(203,255,153,0.5)'
-                : state === 'current' ? '1px solid transparent'
+              const cardBorder = isActive
+                ? `2px solid var(--ih-primary)`
+                : state === 'completed' ? '1px solid rgba(203,255,153,0.5)'
                 : '1px solid transparent';
               const titleColor =
                 state === 'completed' ? '#166534'
@@ -232,17 +247,22 @@ export default function ValidationPage() {
                 : state === 'current' ? 'rgba(255,255,255,0.65)'
                 : '#d1d5db';
               const lineColor =
-                state === 'completed' ? 'rgba(203,255,153,0.6)'
-                : 'var(--ih-border)';
+                state === 'completed' ? 'rgba(203,255,153,0.6)' : 'var(--ih-border)';
 
               return (
                 <div key={section.id}>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '10px 12px', borderRadius: 12,
-                    background: cardBg, border: cardBorder,
-                    transition: 'background 0.2s',
-                  }}>
+                  <div
+                    onClick={() => scrollToSection(section.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 12px', borderRadius: 12,
+                      background: cardBg, border: cardBorder,
+                      cursor: 'pointer',
+                      transition: 'opacity 0.15s',
+                    }}
+                    onMouseEnter={e => { if (state === 'upcoming') (e.currentTarget as HTMLDivElement).style.background = 'var(--ih-bg)'; }}
+                    onMouseLeave={e => { if (state === 'upcoming') (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+                  >
                     <div style={{
                       width: 38, height: 38, borderRadius: 10, flexShrink: 0,
                       background: iconBg,
@@ -263,10 +283,7 @@ export default function ValidationPage() {
                     </div>
                   </div>
                   {!isLast && (
-                    <div style={{
-                      marginLeft: 30, width: 1, height: 16,
-                      background: lineColor,
-                    }} />
+                    <div style={{ marginLeft: 30, width: 1, height: 16, background: lineColor }} />
                   )}
                 </div>
               );
@@ -286,10 +303,13 @@ export default function ValidationPage() {
             return (
               <div
                 key={section.id}
+                ref={el => { sectionRefs.current[section.id] = el; }}
+                id={`section-${section.id}`}
                 style={{
                   marginBottom: 24, background: 'var(--ih-bg-card)',
                   border: '1px solid var(--ih-border)', borderRadius: 12,
                   overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                  scrollMarginTop: 32,
                 }}
               >
                 <div style={{
@@ -388,7 +408,6 @@ export default function ValidationPage() {
             );
           })}
 
-          {/* Footer actions */}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
             <Button
               onClick={() => setReopenOpen(true)}
@@ -397,7 +416,7 @@ export default function ValidationPage() {
               Rouvrir le KYC
             </Button>
             <Button
-              onClick={handleValidate}
+              onClick={() => router.push(`/subscriptions?persona=${persona}`)}
               style={{
                 background: 'linear-gradient(62deg, var(--ih-primary) 10%, var(--ih-primary-light) 89%)',
                 borderColor: 'transparent', color: '#fff', fontWeight: 600,
@@ -409,7 +428,6 @@ export default function ValidationPage() {
         </div>
       </div>
 
-      {/* Reopen modal */}
       <Modal open={reopenOpen} onCancel={() => setReopenOpen(false)} footer={null} closable={false} width={580}>
         <div>
           <p style={{ fontSize: 13, color: 'var(--ih-text-secondary)', marginBottom: 20, lineHeight: 1.7 }}>
