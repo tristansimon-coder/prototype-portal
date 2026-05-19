@@ -53,9 +53,83 @@ export function PartnersTable({ data }: { data: Partner[] }) {
 }`;
 
 export default function PartnersPage() {
+  const [partnerList, setPartnerList] = useState<Partner[]>(partnersData);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
+
+  function handleEdit(record: Partner) {
+    setEditingPartner(record);
+    form.setFieldsValue({
+      email: record.email,
+      entityName: record.name,
+      siren: record.siren,
+      orias: record.orias,
+      funds: record.activatedFunds,
+      city: record.city,
+    });
+    setModalOpen(true);
+  }
+
+  function handleDelete(record: Partner) {
+    Modal.confirm({
+      title: 'Supprimer ce partenaire ?',
+      content: `« ${record.name} » sera retiré de votre réseau.`,
+      okText: 'Supprimer',
+      okButtonProps: { danger: true },
+      cancelText: 'Annuler',
+      onOk: () => {
+        setPartnerList((prev) => prev.filter((p) => p.id !== record.id));
+        messageApi.success('Partenaire supprimé');
+      },
+    });
+  }
+
+  function handleCloseModal() {
+    setModalOpen(false);
+    setEditingPartner(null);
+    form.resetFields();
+  }
+
+  function handleSubmit() {
+    form.validateFields().then((values) => {
+      if (editingPartner) {
+        setPartnerList((prev) =>
+          prev.map((p) =>
+            p.id === editingPartner.id
+              ? {
+                  ...p,
+                  name: values.entityName,
+                  email: values.email,
+                  siren: values.siren,
+                  orias: values.orias,
+                  activatedFunds: values.funds ?? [],
+                  city: values.city,
+                }
+              : p
+          )
+        );
+        messageApi.success('Partenaire mis à jour');
+      } else {
+        const newPartner: Partner = {
+          id: Date.now(),
+          name: values.entityName,
+          email: values.email,
+          siren: values.siren,
+          orias: values.orias,
+          activatedFunds: values.funds ?? [],
+          investorsCount: 0,
+          subscriptionsCount: 0,
+          status: 'pending',
+          city: values.city,
+        };
+        setPartnerList((prev) => [...prev, newPartner]);
+        messageApi.success('Partenaire créé avec succès !');
+      }
+      handleCloseModal();
+    });
+  }
 
   const fundOptions = funds.map((f) => ({ value: f.name, label: f.name }));
 
@@ -133,10 +207,10 @@ export default function PartnersPage() {
       key: 'actions',
       align: 'right',
       width: 100,
-      render: () => (
+      render: (_, record) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-          <Button type="text" size="small" icon={<EditOutlined />} style={{ color: 'var(--ih-primary)' }} />
-          <Button type="text" size="small" icon={<DeleteOutlined />} danger />
+          <Button type="text" size="small" icon={<EditOutlined />} style={{ color: 'var(--ih-primary)' }} onClick={() => handleEdit(record)} />
+          <Button type="text" size="small" icon={<DeleteOutlined />} danger onClick={() => handleDelete(record)} />
         </div>
       ),
     },
@@ -165,7 +239,7 @@ export default function PartnersPage() {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => setModalOpen(true)}
+              onClick={() => { setEditingPartner(null); setModalOpen(true); }}
               style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)' }}
             >
               Nouveau partenaire
@@ -174,7 +248,7 @@ export default function PartnersPage() {
 
           <ConfigProvider theme={{ token: { colorFillAlter: '#ffffff' } }}>
             <Table
-              dataSource={partnersData}
+              dataSource={partnerList}
               columns={columns}
               rowKey="id"
               size="middle"
@@ -245,30 +319,24 @@ export default function PartnersPage() {
       {/* Nouveau partenaire modal */}
       <Modal
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); form.resetFields(); }}
+        onCancel={handleCloseModal}
         title={
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
-            Nouveau partenaire
+            {editingPartner ? 'Modifier le partenaire' : 'Nouveau partenaire'}
           </span>
         }
         width={640}
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>
+            <Button onClick={handleCloseModal}>
               Annuler
             </Button>
             <Button
               type="primary"
               style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)' }}
-              onClick={() => {
-                form.validateFields().then(() => {
-                  setModalOpen(false);
-                  form.resetFields();
-                  messageApi.success('Partenaire créé avec succès !');
-                });
-              }}
+              onClick={handleSubmit}
             >
-              Créer le partenaire
+              {editingPartner ? 'Enregistrer' : 'Créer le partenaire'}
             </Button>
           </div>
         }
