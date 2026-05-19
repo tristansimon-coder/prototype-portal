@@ -79,12 +79,62 @@ export const funds = [
 ];
 
 export const subscriptions = [
-  { id: 1, fund: 'Fonds Licorne VI', part: 'Part A', date: '15/01/2025', amount: 100000, called: 0, distributed: 0, valuation: null, status: 'to_sign', fundType: 'call' as const },
-  { id: 2, fund: 'Fonds Licorne VI', part: 'Part C', date: '15/01/2025', amount: 100, called: 0, distributed: 0, valuation: null, status: 'in_progress', fundType: 'call' as const },
-  { id: 3, fund: 'Fonds Licorne VI', part: 'Part A', date: '15/01/2025', amount: 300000, called: 75000, distributed: 0, valuation: null, status: 'valid', fundType: 'call' as const, navPerShare: 1080, navDate: '30/04/2026', shares: 300 },
-  { id: 4, fund: 'Flex II', part: null, date: '03/02/2025', amount: 100, called: 100, distributed: 0, valuation: null, status: 'valid', fundType: 'direct' as const, navPerShare: 105.50, navDate: '30/04/2026', shares: 1 },
-  { id: 5, fund: 'Flex II', part: 'A1', date: '09/07/2025', amount: 250000, called: 0, distributed: 0, valuation: null, status: 'in_progress', fundType: 'direct' as const },
+  { id: 1, fund: 'Fonds Licorne VI', part: 'Part A', date: '15/01/2025', amount: 100000, called: 0, distributed: 0, valuation: null, status: 'to_sign', fundType: 'call' as const, investor: 'Sophie Blanchard' },
+  { id: 2, fund: 'Fonds Licorne VI', part: 'Part C', date: '15/01/2025', amount: 100, called: 0, distributed: 0, valuation: null, status: 'in_progress', fundType: 'call' as const, investor: 'Marc Lefebvre' },
+  { id: 3, fund: 'Fonds Licorne VI', part: 'Part A', date: '15/01/2025', amount: 300000, called: 75000, distributed: 0, valuation: null, status: 'valid', fundType: 'call' as const, navPerShare: 1080, navDate: '30/04/2026', shares: 300, investor: 'Hélène Rousseau' },
+  { id: 4, fund: 'Flex II', part: null, date: '03/02/2025', amount: 100, called: 100, distributed: 0, valuation: null, status: 'valid', fundType: 'direct' as const, navPerShare: 105.50, navDate: '30/04/2026', shares: 1, investor: 'Paul Moreau' },
+  { id: 5, fund: 'Flex II', part: 'A1', date: '09/07/2025', amount: 250000, called: 0, distributed: 0, valuation: null, status: 'in_progress', fundType: 'direct' as const, investor: 'Claire Fontaine' },
+  { id: 6, fund: 'Impact Growth II', part: 'Part A', date: '12/04/2026', amount: 50000, called: 0, distributed: 0, valuation: null, status: 'study', fundType: 'call' as const, investor: 'Jean-Pierre Durand' },
 ];
+
+export const kycValidations: Record<number, {
+  investorName: string;
+  part: string;
+  partValue: number;
+  entryFees: number;
+  sections: {
+    id: string;
+    title: string;
+    fields: { question: string; answer: string }[];
+  }[];
+}> = {
+  6: {
+    investorName: 'Jean-Pierre Durand',
+    part: 'Part A',
+    partValue: 50000,
+    entryFees: 0,
+    sections: [
+      {
+        id: 'identity',
+        title: 'Identité',
+        fields: [
+          { question: 'Prénom*', answer: 'Jean-Pierre' },
+          { question: 'Nom*', answer: 'Durand' },
+          { question: 'Soumis à l\'IFI*', answer: 'Non' },
+        ],
+      },
+      {
+        id: 'address',
+        title: 'Coordonnées',
+        fields: [
+          { question: 'Adresse*', answer: '8 rue de la République' },
+          { question: 'Code postal*', answer: '69001' },
+          { question: 'Ville*', answer: 'Lyon' },
+          { question: 'Pays*', answer: 'France' },
+        ],
+      },
+      {
+        id: 'profile',
+        title: 'Profil investisseur',
+        fields: [
+          { question: "Catégorie d'investisseur*", answer: 'Professionnel par nature' },
+          { question: 'Revenus annuels*', answer: 'Entre 100 000 € et 300 000 €' },
+          { question: 'Expérience en investissement*', answer: 'Plus de 5 ans' },
+        ],
+      },
+    ],
+  },
+};
 
 export const portfolioKpis = {
   totalEngagement: 300100,

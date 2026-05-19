@@ -3,6 +3,7 @@ import { Tag } from 'antd';
 const statusConfig: Record<string, { label: string; color: string }> = {
   to_sign: { label: 'Souscription à envoyer en signature', color: 'orange' },
   in_progress: { label: 'Souscription en cours', color: 'processing' },
+  study: { label: 'Étude du dossier', color: 'purple' },
   valid: { label: 'Valide', color: 'success' },
   rejected: { label: 'Refusée', color: 'error' },
   draft: { label: 'Brouillon', color: 'default' },
