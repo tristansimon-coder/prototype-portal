@@ -58,7 +58,11 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
   const effectivePrice = salePrice ?? nav ?? 0;
   const effectiveParts = partsCount ?? 1;
   const totalSale = effectivePrice * effectiveParts;
-  const netAmount = Math.max(0, totalSale - remainingEngagement);
+  // Engagement transféré = proportion des parts vendues × engagement restant total
+  const engagementTransferred = totalShares && totalShares > 0
+    ? (remainingEngagement / totalShares) * effectiveParts
+    : remainingEngagement;
+  const netAmount = totalSale - engagementTransferred;
 
   function reset() {
     setSalePrice(null);
@@ -167,10 +171,15 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
         </Field>
 
         {/* Avertissement engagement — fonds à appel avec engagement restant */}
-        {isCallFund && remainingEngagement > 0 && (
+        {isCallFund && engagementTransferred > 0 && (
           <div style={{ fontSize: 13, color: 'var(--ih-text-primary)' }}>
             ⚠ Attention : en vendant ces parts, l&apos;acheteur reprend aussi votre engagement futur de{' '}
-            <strong>{formatEur(remainingEngagement)}</strong>
+            <strong>{formatEur(engagementTransferred)}</strong>
+            {totalShares && totalShares > effectiveParts && (
+              <span style={{ color: 'var(--ih-text-secondary)', fontWeight: 400 }}>
+                {' '}({formatEur(remainingEngagement / totalShares)} / part)
+              </span>
+            )}
           </div>
         )}
 
