@@ -47,7 +47,7 @@ export function Sidebar() {
           InvestHub<sup style={{ fontSize: 10 }}>®</sup>
         </div>
         <div style={{ color: 'var(--ih-accent)', fontSize: 11, marginTop: 2, fontWeight: 500 }}>
-          Portail Investisseur
+          Prototype
         </div>
       </div>
 
