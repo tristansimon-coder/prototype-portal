@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { Alert, Tabs } from 'antd';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SecondaryMarketCard } from '@/components/widgets/SecondaryMarketCard';
@@ -8,6 +9,7 @@ import { SECONDARY_MARKET_CARD_CODE } from '@/lib/code-sources';
 
 export default function SecondaryMarketPage() {
   const funds = Array.from(new Set(secondaryMarket.map(s => s.fund)));
+  const [activeFund, setActiveFund] = useState(funds[0]);
 
   return (
     <div>
@@ -22,19 +24,20 @@ export default function SecondaryMarketPage() {
 
       <WidgetWrapper title="SecondaryMarketCard" codeSource={SECONDARY_MARKET_CARD_CODE}>
         <div style={{ paddingTop: 40 }}>
+          {/* Tabs — sélecteur de fonds */}
           <Tabs
-            items={funds.map(fund => ({
-              key: fund,
-              label: fund,
-              children: (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, paddingTop: 16 }}>
-                  {secondaryMarket.filter(s => s.fund === fund).map(offer => (
-                    <SecondaryMarketCard key={offer.id} {...offer} />
-                  ))}
-                </div>
-              ),
-            }))}
+            activeKey={activeFund}
+            onChange={setActiveFund}
+            items={funds.map(fund => ({ key: fund, label: fund }))}
+            style={{ marginBottom: 0 }}
           />
+
+          {/* Bloc info — cartes du fonds sélectionné */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, paddingTop: 24 }}>
+            {secondaryMarket.filter(s => s.fund === activeFund).map(offer => (
+              <SecondaryMarketCard key={offer.id} {...offer} />
+            ))}
+          </div>
         </div>
       </WidgetWrapper>
     </div>
