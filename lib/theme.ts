@@ -14,18 +14,22 @@ export const investHubTheme: ThemeConfig = {
   },
   components: {
     Button: {
-      // Primary: navy filled
+      // Primary: navy filled, no shadow
       colorPrimary: '#0D3D56',
       colorPrimaryHover: '#1A5C7A',
       colorPrimaryActive: '#0a2e40',
       primaryColor: '#ffffff',
-      // Default (secondary): white + border
+      primaryShadow: 'none',
+      // Default (secondary): white + border, no shadow
       defaultBorderColor: '#D1D5DB',
       defaultColor: '#1A1A2E',
       defaultBg: '#ffffff',
       defaultHoverBorderColor: '#0D3D56',
       defaultHoverColor: '#0D3D56',
       defaultHoverBg: '#ffffff',
+      defaultShadow: 'none',
+      boxShadow: 'none',
+      dangerShadow: 'none',
     },
   },
 };

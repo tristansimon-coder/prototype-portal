@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 import { Layout } from 'antd';
 import { Sidebar } from './Sidebar';
 
@@ -19,7 +20,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           overflow: 'hidden',
         }}
       >
-        <Sidebar />
+        <Suspense fallback={null}>
+          <Sidebar />
+        </Suspense>
       </Sider>
       <Layout style={{ marginLeft: 220 }}>
         <Content

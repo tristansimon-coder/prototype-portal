@@ -55,7 +55,17 @@ export const documents = [
 ];
 
 export const secondaryMarket = [
-  { id: 1, fund: 'Fonds Secondaire', part: 'PART A', shares: 1000, price: 100, validUntil: '30/08/2026' },
+  {
+    id: 1,
+    fund: 'Fonds Secondaire',
+    part: 'PART A',
+    shares: 1000,
+    price: 100,
+    validUntil: '30/08/2026',
+    image: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80',
+    navPerShare: 118.50,
+    navDate: '30/04/2026',
+  },
 ];
 
 export const navPerformance = Array.from({ length: 24 }, (_, i) => {

@@ -1,8 +1,14 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Input } from 'antd';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Input, Segmented } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
+
+const PERSONAS = [
+  { label: 'LP', value: 'lp' },
+  { label: 'GP', value: 'gp' },
+  { label: 'Distrib.', value: 'distributor' },
+];
 
 const navItems = [
   { key: 'home', label: 'Home', path: '/home' },
@@ -16,6 +22,15 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const persona = searchParams.get('persona') ?? 'lp';
+
+  function handlePersonaChange(value: string | number) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('persona', String(value));
+    router.replace(`${pathname}?${params.toString()}`);
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '0 0 16px 0' }}>
@@ -27,6 +42,20 @@ export function Sidebar() {
         <div style={{ color: 'var(--ih-accent)', fontSize: 11, marginTop: 2, fontWeight: 500 }}>
           Portail Investisseur
         </div>
+      </div>
+
+      {/* Persona switcher */}
+      <div style={{ padding: '12px 12px 4px' }}>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+          Vue
+        </div>
+        <Segmented
+          value={persona}
+          onChange={handlePersonaChange}
+          options={PERSONAS}
+          block
+          style={{ background: 'rgba(255,255,255,0.08)', fontSize: 12 }}
+        />
       </div>
 
       {/* Search */}
