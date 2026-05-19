@@ -100,7 +100,7 @@ export default function ValidationPage() {
           Validation {id} / {validation.investorName}
         </h1>
         <div style={{ fontSize: 14, color: 'var(--ih-text-secondary)' }}>
-          {validation.part} - {formatEur(validation.partValue)} - Frais d&apos;entrée : {formatEur(validation.entryFees)}
+          {validation.part} - {formatEur(validation.partValue)} - Frais d&apos;entrée : {formatEur(validation.entryFees)}
         </div>
       </div>
 
@@ -109,17 +109,16 @@ export default function ValidationPage() {
         const stats = sectionStats[section.id] ?? { total: 0, answered: 0, approved: 0, rejected: 0 };
         const allApproved = stats.approved === stats.total && stats.total > 0;
         const sectionIconBg = allApproved
-          ? 'linear-gradient(135deg, #d1fae5, #99f6e4)'
-          : 'linear-gradient(135deg, #dbeafe, #e0e7ff)';
-        const sectionIconColor = allApproved ? '#059669' : '#4f46e5';
+          ? 'linear-gradient(135deg, rgba(203,255,153,0.35), rgba(203,255,153,0.75))'
+          : 'linear-gradient(135deg, rgba(14,42,50,0.07), rgba(14,42,50,0.15))';
 
         return (
           <div
             key={section.id}
             style={{
               marginBottom: 24,
-              background: '#fff',
-              border: '1px solid #e5e7eb',
+              background: 'var(--ih-bg-card)',
+              border: '1px solid var(--ih-border)',
               borderRadius: 12,
               overflow: 'hidden',
               boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
@@ -131,7 +130,7 @@ export default function ValidationPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '16px 20px',
-              borderBottom: '1px solid #f3f4f6',
+              borderBottom: '1px solid var(--ih-border)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
@@ -144,7 +143,7 @@ export default function ValidationPage() {
                   justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <CheckOutlined style={{ fontSize: 20, color: sectionIconColor }} />
+                  <CheckOutlined style={{ fontSize: 20, color: 'var(--ih-primary)' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)', marginBottom: 4 }}>
@@ -152,11 +151,11 @@ export default function ValidationPage() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ih-text-secondary)' }}>
                     <span><strong style={{ color: 'var(--ih-text-primary)' }}>{stats.answered}</strong>/{stats.total} réponses</span>
-                    <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#d1d5db', display: 'inline-block' }} />
+                    <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} />
                     <span style={{ color: '#059669' }}><strong>{stats.approved}</strong> validées</span>
                     {stats.rejected > 0 && (
                       <>
-                        <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#d1d5db', display: 'inline-block' }} />
+                        <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} />
                         <span style={{ color: '#dc2626' }}><strong>{stats.rejected}</strong> refusées</span>
                       </>
                     )}
@@ -173,17 +172,17 @@ export default function ValidationPage() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '10px 20px',
-                background: '#eff6ff',
-                borderBottom: '1px solid #dbeafe',
+                background: 'rgba(14,42,50,0.04)',
+                borderBottom: '1px solid var(--ih-border)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#1d4ed8' }}>
-                  <CheckCircleFilled style={{ color: '#3b82f6' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ih-primary)' }}>
+                  <CheckCircleFilled style={{ color: 'var(--ih-primary)' }} />
                   <span>Vérifier toutes les réponses de cette section</span>
                 </div>
                 <Button
                   size="small"
                   onClick={() => validateSection(section.id, section.fields.length)}
-                  style={{ background: '#2563eb', borderColor: '#2563eb', color: '#fff', fontWeight: 600 }}
+                  style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', color: '#fff', fontWeight: 600 }}
                 >
                   Valider toute la section
                 </Button>
@@ -195,8 +194,8 @@ export default function ValidationPage() {
               display: 'grid',
               gridTemplateColumns: '2fr 3fr 140px',
               padding: '8px 20px',
-              background: '#f9fafb',
-              borderBottom: '1px solid #e5e7eb',
+              background: 'var(--ih-bg)',
+              borderBottom: '1px solid var(--ih-border)',
             }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Réponse</span>
@@ -204,7 +203,7 @@ export default function ValidationPage() {
             </div>
 
             {/* Rows */}
-            <div style={{ background: '#fff' }}>
+            <div style={{ background: 'var(--ih-bg-card)' }}>
               {section.fields.map((field, index) => {
                 const key = getFieldKey(section.id, index);
                 const status = fieldStatuses[key] ?? 'pending';
@@ -216,12 +215,12 @@ export default function ValidationPage() {
                       display: 'grid',
                       gridTemplateColumns: '2fr 3fr 140px',
                       padding: '12px 20px',
-                      borderBottom: index < section.fields.length - 1 ? '1px solid #f3f4f6' : 'none',
+                      borderBottom: index < section.fields.length - 1 ? '1px solid var(--ih-border)' : 'none',
                       alignItems: 'center',
                       transition: 'background 0.1s',
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}
                   >
                     <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-secondary)' }}>{field.question}</span>
                     <span style={{ fontSize: 13.5, color: 'var(--ih-text-primary)', fontWeight: 500 }}>{field.answer}</span>
@@ -264,7 +263,7 @@ export default function ValidationPage() {
         <Button
           onClick={handleValidate}
           style={{
-            background: 'linear-gradient(62deg, #000 10%, #0F323D 89%)',
+            background: 'linear-gradient(62deg, var(--ih-primary) 10%, var(--ih-primary-light) 89%)',
             borderColor: 'transparent',
             color: '#fff',
             fontWeight: 600,
@@ -289,7 +288,7 @@ export default function ValidationPage() {
             pour favoriser la correction du dossier.
           </p>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 6 }}>Message :</div>
+            <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 6 }}>Message :</div>
             <Input.TextArea
               value={reopenMessage}
               onChange={e => setReopenMessage(e.target.value)}
@@ -302,8 +301,8 @@ export default function ValidationPage() {
             onClick={handleReopen}
             style={{
               width: '100%',
-              background: '#3dbfa5',
-              borderColor: '#3dbfa5',
+              background: 'var(--ih-primary)',
+              borderColor: 'var(--ih-primary)',
               fontWeight: 600,
               height: 44,
             }}
