@@ -123,7 +123,7 @@ export function DocumentExplorer({ documents }: DocumentExplorerProps) {
 
       {/* File list */}
       <div style={{ flex: 1, background: 'var(--ih-bg-card)', borderRadius: 12, border: '1px solid var(--ih-border)', padding: 16 }}>
-        <ConfigProvider theme={{ token: { colorPrimary: '#F0F2F5', colorPrimaryHover: '#F0F2F5' }, components: { Table: { rowSelectedBg: '#F0F2F5', rowSelectedHoverBg: '#e8eaed' } } }}>
+        <ConfigProvider theme={{ components: { Table: { rowSelectedBg: '#F0F2F5', rowSelectedHoverBg: '#e8eaed' } } }}>
         <Table
           dataSource={filtered}
           columns={columns}
