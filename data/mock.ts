@@ -157,6 +157,12 @@ export const redemptions = [
   { id: 3, subscriptionId: 3, date: '10/01/2026', shares: 20, amount: 21600, status: 'valid' as const, docName: 'Bulletin rachat S2' },
 ];
 
+export const partners = [
+  { id: 1, name: 'Cabinet Dupont & Associés', email: 'contact@cabinet-dupont.fr', activatedFunds: ['Impact Growth II', 'Flex II'], investorsCount: 12, subscriptionsCount: 8, status: 'active' as const, siren: '123 456 789', orias: '12 001 234', city: 'Paris' },
+  { id: 2, name: 'Leclerc Patrimoine', email: 'p.leclerc@patrimoine-conseil.fr', activatedFunds: ['Flex II'], investorsCount: 5, subscriptionsCount: 3, status: 'active' as const, siren: '987 654 321', orias: '12 005 678', city: 'Lyon' },
+  { id: 3, name: 'Fontaine Invest', email: 'contact@fontaine-invest.fr', activatedFunds: ['Impact Growth II'], investorsCount: 3, subscriptionsCount: 2, status: 'pending' as const, siren: '456 789 123', orias: '12 009 012', city: 'Bordeaux' },
+];
+
 export const navPerformance = Array.from({ length: 24 }, (_, i) => {
   const date = new Date(2024, i, 1);
   return {

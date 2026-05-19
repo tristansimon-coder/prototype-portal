@@ -9,10 +9,18 @@ const PERSONAS = [
   { label: 'Distributeur', value: 'distributor' },
 ];
 
-const navItems = [
+interface NavItem {
+  key: string;
+  label: string;
+  path: string;
+  distributorOnly?: boolean;
+}
+
+const navItems: NavItem[] = [
   { key: 'home', label: 'Home', path: '/home' },
   { key: 'documents', label: 'My documents', path: '/documents' },
   { key: 'subscriptions', label: 'My subscriptions', path: '/subscriptions' },
+  { key: 'partners', label: 'Mes partenaires', path: '/partners', distributorOnly: true },
   { key: 'performances', label: 'My Performances', path: '/performances' },
   { key: 'funds', label: 'Our funds', path: '/funds' },
   { key: 'secondary-market', label: 'Marché secondaire', path: '/secondary-market' },
@@ -73,7 +81,7 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-        {navItems.map((item) => {
+        {navItems.filter(item => !item.distributorOnly || persona === 'distributor').map((item) => {
           const isActive =
             pathname === item.path ||
             (item.path !== '/home' && pathname.startsWith(item.path));
