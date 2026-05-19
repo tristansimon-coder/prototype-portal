@@ -2,13 +2,14 @@
 import { useState, useMemo } from 'react';
 import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { SELL_MODAL_CODE } from '@/lib/code-sources';
+import { redemptions as allRedemptions } from '@/data/mock';
 
 interface Subscription {
   id: number;
@@ -228,6 +229,116 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
   );
 }
 
+function RedemptionOnboardingModal({ open, onClose, subscription }: { open: boolean; onClose: () => void; subscription: Subscription | null }) {
+  if (!subscription) return null;
+  return (
+    <Modal open={open} onCancel={onClose} footer={null} title="Rachat libre" width={480}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '24px 0 8px', textAlign: 'center' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--ih-bg)', border: '1px solid var(--ih-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <RollbackOutlined style={{ fontSize: 22, color: 'var(--ih-primary)' }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ih-text-primary)', marginBottom: 6 }}>
+            Demande de rachat — {subscription.fund}{subscription.part ? ` (${subscription.part})` : ''}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ih-text-secondary)', lineHeight: 1.6, maxWidth: 340 }}>
+            Ce bouton redirige l&apos;investisseur vers l&apos;onboarding de demande de rachat configuré pour ce fonds.
+          </div>
+        </div>
+        <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#92400e', width: '100%', textAlign: 'left', lineHeight: 1.6 }}>
+          <strong>Note développeur :</strong> Redirection vers l&apos;onboarding de rachat v1 (paramétré au niveau du fonds / des parts). Le reste du workflow (validation, signature, paiement) est géré dans le back-office.
+        </div>
+        <Button type="primary" style={{ width: '100%' }} onClick={onClose}>
+          Accéder à l&apos;onboarding de rachat
+        </Button>
+        <Button style={{ width: '100%' }} onClick={onClose}>Annuler</Button>
+      </div>
+    </Modal>
+  );
+}
+
+type RedemptionStatus = 'to_sign' | 'valid';
+
+const REDEMPTION_STATUS_LABEL: Record<RedemptionStatus, string> = {
+  to_sign: 'À signer',
+  valid: 'Validé',
+};
+const REDEMPTION_STATUS_COLOR: Record<RedemptionStatus, string> = {
+  to_sign: 'orange',
+  valid: 'success',
+};
+
+function RedemptionHistoryModal({ open, onClose, subscription }: { open: boolean; onClose: () => void; subscription: Subscription | null }) {
+  if (!subscription) return null;
+  const items = allRedemptions.filter(r => r.subscriptionId === subscription.id);
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={<Button onClick={onClose}>Fermer</Button>}
+      title={`Historique des rachats — ${subscription.fund}${subscription.part ? ` (${subscription.part})` : ''}`}
+      width={720}
+    >
+      <Table
+        dataSource={items}
+        rowKey="id"
+        size="middle"
+        pagination={false}
+        style={{ marginTop: 8 }}
+        columns={[
+          {
+            title: 'Date',
+            dataIndex: 'date',
+            key: 'date',
+            render: v => <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>{v}</span>,
+          },
+          {
+            title: 'Nombre de parts',
+            dataIndex: 'shares',
+            key: 'shares',
+            render: v => <span style={{ fontSize: 13 }}>{v.toLocaleString('fr-FR')}</span>,
+          },
+          {
+            title: 'Montant',
+            dataIndex: 'amount',
+            key: 'amount',
+            align: 'right' as const,
+            render: v => <span style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap' }}>{formatEur(v)}</span>,
+          },
+          {
+            title: 'Statut',
+            dataIndex: 'status',
+            key: 'status',
+            render: (v: RedemptionStatus) => (
+              <span style={{
+                display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                background: v === 'to_sign' ? '#FFF7ED' : '#F0FDF4',
+                color: v === 'to_sign' ? '#d97706' : '#16a34a',
+                border: `1px solid ${v === 'to_sign' ? '#FED7AA' : '#BBF7D0'}`,
+              }}>
+                {REDEMPTION_STATUS_LABEL[v] ?? v}
+              </span>
+            ),
+          },
+          {
+            title: 'Documents',
+            dataIndex: 'docName',
+            key: 'docName',
+            render: (v: string | null) => v
+              ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13 }}>{v}</span>
+                  <Button type="text" size="small" icon={<DownloadOutlined />} style={{ color: 'var(--ih-primary)', padding: 0 }} />
+                </div>
+              )
+              : <span style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>Aucun document</span>,
+          },
+        ]}
+      />
+    </Modal>
+  );
+}
+
 export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const [fundFilter, setFundFilter] = useState<string | undefined>(undefined);
   const [partFilter, setPartFilter] = useState<string | undefined>(undefined);
@@ -238,22 +349,29 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const sellId = searchParams.get('modal') === 'sell' ? Number(searchParams.get('id')) : null;
-  const sellTarget = sellId ? (data.find(d => d.id === sellId) ?? null) : null;
+  const modalType = searchParams.get('modal');
+  const modalId = searchParams.get('id') ? Number(searchParams.get('id')) : null;
+  const sellTarget = modalType === 'sell' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
+  const redeemTarget = modalType === 'redeem' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
+  const historyTarget = modalType === 'redemption-history' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
 
-  function openSell(record: Subscription) {
+  function openModal(type: string, record: Subscription) {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('modal', 'sell');
+    params.set('modal', type);
     params.set('id', String(record.id));
     router.replace(`${pathname}?${params.toString()}`);
   }
 
-  function closeSell() {
+  function closeModal() {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('modal');
     params.delete('id');
     router.replace(`${pathname}?${params.toString()}`);
   }
+
+  // keep backward compat aliases
+  const openSell = (r: Subscription) => openModal('sell', r);
+  const closeSell = closeModal;
 
   function copyLink() {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -349,8 +467,11 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
       width: 60,
       align: 'right' as const,
       render: (_, record) => {
+        const hasRedemptions = allRedemptions.some(r => r.subscriptionId === record.id);
         const validItems: MenuProps['items'] = [
           { key: 'sell', label: 'Vendre', icon: <ShoppingOutlined />, onClick: () => openSell(record) },
+          { key: 'redeem', label: 'Rachat libre', icon: <RollbackOutlined />, onClick: () => openModal('redeem', record) },
+          ...(hasRedemptions ? [{ key: 'redemption-history', label: 'Historique des rachats', icon: <HistoryOutlined />, onClick: () => openModal('redemption-history', record) }] : []),
           { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
         ];
         const otherItems: MenuProps['items'] = [
@@ -440,6 +561,16 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         open={sellTarget !== null}
         onClose={closeSell}
         onCopyLink={copyLink}
+      />
+      <RedemptionOnboardingModal
+        open={redeemTarget !== null}
+        onClose={closeModal}
+        subscription={redeemTarget}
+      />
+      <RedemptionHistoryModal
+        open={historyTarget !== null}
+        onClose={closeModal}
+        subscription={historyTarget}
       />
     </div>
   );

@@ -151,6 +151,12 @@ export const secondaryMarket = [
   },
 ];
 
+export const redemptions = [
+  { id: 1, subscriptionId: 3, date: '28/04/2026', shares: 50, amount: 54000, status: 'to_sign' as const, docName: null },
+  { id: 2, subscriptionId: 3, date: '15/03/2026', shares: 30, amount: 32400, status: 'to_sign' as const, docName: 'Bulletin rachat S1' },
+  { id: 3, subscriptionId: 3, date: '10/01/2026', shares: 20, amount: 21600, status: 'valid' as const, docName: 'Bulletin rachat S2' },
+];
+
 export const navPerformance = Array.from({ length: 24 }, (_, i) => {
   const date = new Date(2024, i, 1);
   return {

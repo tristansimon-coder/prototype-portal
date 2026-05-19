@@ -29,7 +29,7 @@ function FundDetailInner() {
   const fund = funds.find(f => f.id === Number(params.id));
   const [selectedClass, setSelectedClass] = useState(fund?.shareClasses[0]?.id ?? 'A');
   const [amount, setAmount] = useState<number | null>(null);
-  const [sharesInput, setSharesInput] = useState<number | null>(secondaryOffer ? secondaryOffer.shares : null);
+  // sharesInput unused — secondary market offers are fixed-quantity
   const [investor, setInvestor] = useState<string | null>(null);
 
   if (!fund) {
@@ -97,11 +97,11 @@ function FundDetailInner() {
             const isCallOffer = secondaryOffer.fundType === 'call';
             const calledPct = (secondaryOffer as { calledPct?: number }).calledPct ?? 0;
             const engPer = (secondaryOffer as { engagementPerShare?: number }).engagementPerShare ?? 0;
-            const qty = sharesInput ?? 0;
+            const qty = secondaryOffer.shares;
             const toPay = qty * secondaryOffer.price;
             const toCall = isCallOffer ? qty * engPer : 0;
             const total = toPay + toCall;
-            const canCommit = qty > 0 && (!isDistributor || investor !== null);
+            const canCommit = !isDistributor || investor !== null;
             const selectedInvestorSec = MOCK_INVESTORS.find(i => i.value === investor);
             return (
               <div style={{ position: 'sticky', top: 32, background: 'white', borderRadius: 12, border: '1px solid var(--ih-border)', padding: 28 }}>
@@ -178,21 +178,14 @@ function FundDetailInner() {
                   )}
                 </div>
 
-                {/* Shares input */}
+                {/* Shares — fixed, read-only */}
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 6 }}>Nombre de parts</div>
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    min={1}
-                    max={secondaryOffer.shares}
-                    value={sharesInput}
-                    onChange={setSharesInput}
-                    addonBefore="Parts"
-                    decimalSeparator=","
-                  />
-                  <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginTop: 4 }}>
-                    Disponible : {secondaryOffer.shares.toLocaleString('fr-FR')} parts
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 11px', border: '1px solid var(--ih-border)', borderRadius: 6, background: 'var(--ih-bg)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--ih-text-secondary)', borderRight: '1px solid var(--ih-border)', paddingRight: 10 }}>Parts</span>
+                    <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ih-text-primary)' }}>{secondaryOffer.shares.toLocaleString('fr-FR')}</span>
                   </div>
+                  <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginTop: 4 }}>Offre globale — quantité non modifiable</div>
                 </div>
 
                 {/* Engagement warning */}
@@ -217,7 +210,7 @@ function FundDetailInner() {
                 {/* CTA */}
                 <Button
                   type="primary"
-                  style={{ width: '100%', height: 48, fontSize: 15, fontWeight: 700, background: '#059669', borderColor: '#059669' }}
+                  style={{ width: '100%', height: 48, fontSize: 15, fontWeight: 700 }}
                   disabled={!canCommit}
                 >
                   {isDistributor
