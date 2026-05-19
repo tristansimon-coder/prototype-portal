@@ -276,7 +276,7 @@ function RedemptionHistoryModal({ open, onClose, subscription }: { open: boolean
       open={open}
       onCancel={onClose}
       footer={<Button onClick={onClose}>Fermer</Button>}
-      title={`Historique des rachats — ${subscription.fund}${subscription.part ? ` (${subscription.part})` : ''}`}
+      title={`Historique des rachats — Souscription ${subscription.fund}${subscription.part ? ` · ${subscription.part}` : ''}`}
       width={720}
     >
       <Table
