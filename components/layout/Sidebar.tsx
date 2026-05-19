@@ -2,27 +2,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Input } from 'antd';
-import {
-  HomeOutlined,
-  FolderOutlined,
-  FileTextOutlined,
-  LineChartOutlined,
-  BankOutlined,
-  SwapOutlined,
-  AppstoreOutlined,
-  SearchOutlined,
-  UserOutlined,
-  LogoutOutlined,
-} from '@ant-design/icons';
+import { SearchOutlined } from '@ant-design/icons';
 
 const navItems = [
-  { key: 'home', label: 'Home', icon: <HomeOutlined />, path: '/home' },
-  { key: 'documents', label: 'My documents', icon: <FolderOutlined />, path: '/documents' },
-  { key: 'subscriptions', label: 'My subscriptions', icon: <FileTextOutlined />, path: '/subscriptions' },
-  { key: 'performances', label: 'My Performances', icon: <LineChartOutlined />, path: '/performances' },
-  { key: 'funds', label: 'Our funds', icon: <BankOutlined />, path: '/funds' },
-  { key: 'secondary-market', label: 'Marché secondaire', icon: <SwapOutlined />, path: '/secondary-market' },
-  { key: 'design-system', label: '⚙ Design System', icon: <AppstoreOutlined />, path: '/design-system' },
+  { key: 'home', label: 'Home', path: '/home' },
+  { key: 'documents', label: 'My documents', path: '/documents' },
+  { key: 'subscriptions', label: 'My subscriptions', path: '/subscriptions' },
+  { key: 'performances', label: 'My Performances', path: '/performances' },
+  { key: 'funds', label: 'Our funds', path: '/funds' },
+  { key: 'secondary-market', label: 'Marché secondaire', path: '/secondary-market' },
+  { key: 'design-system', label: '⚙ Design System', path: '/design-system' },
 ];
 
 export function Sidebar() {
@@ -30,8 +19,18 @@ export function Sidebar() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '0 0 16px 0' }}>
+      {/* Logo */}
+      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ color: 'white', fontWeight: 700, fontSize: 20, letterSpacing: '-0.5px' }}>
+          InvestHub<sup style={{ fontSize: 10 }}>®</sup>
+        </div>
+        <div style={{ color: 'var(--ih-accent)', fontSize: 11, marginTop: 2, fontWeight: 500 }}>
+          Portail Investisseur
+        </div>
+      </div>
+
       {/* Search */}
-      <div style={{ padding: '20px 12px 12px' }}>
+      <div style={{ padding: '12px 12px 8px' }}>
         <Input
           prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.5)' }} />}
           placeholder="Rechercher"
@@ -67,7 +66,6 @@ export function Sidebar() {
                   borderRadius: 0,
                 }}
               >
-                <span style={{ fontSize: 15 }}>{item.icon}</span>
                 <span>{item.label}</span>
               </div>
             </Link>
@@ -88,7 +86,6 @@ export function Sidebar() {
             fontSize: 13.5,
           }}
         >
-          <UserOutlined />
           <span>Profil</span>
         </div>
         <div
@@ -102,7 +99,6 @@ export function Sidebar() {
             fontSize: 13.5,
           }}
         >
-          <LogoutOutlined />
           <span>Se déconnecter</span>
         </div>
       </div>
