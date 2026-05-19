@@ -5,11 +5,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { DocumentExplorer } from '@/components/widgets/DocumentExplorer';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
 import { documents } from '@/data/mock';
-
-const docCode = `interface Document {
-  id: number; fund: string; name: string;
-  type: string; size: string; addedAt: string; isNew: boolean;
-}`;
+import { DOCUMENT_EXPLORER_CODE } from '@/lib/code-sources';
 
 export default function DocumentsPage() {
   const [search, setSearch] = useState('');
@@ -31,7 +27,7 @@ export default function DocumentsPage() {
         />
       </div>
 
-      <WidgetWrapper title="DocumentExplorer" codeSource={docCode}>
+      <WidgetWrapper title="DocumentExplorer" codeSource={DOCUMENT_EXPLORER_CODE}>
         <div style={{ paddingTop: 40 }}>
           <DocumentExplorer documents={filtered} />
         </div>

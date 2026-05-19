@@ -8,7 +8,7 @@ import {
   UserOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, EditOutlined,
   ArrowUpOutlined, SearchOutlined, PlusOutlined, BellOutlined,
 } from '@ant-design/icons';
-import { useState, type ReactNode } from 'react';
+import { useState, Suspense, type ReactNode } from 'react';
 import { KpiCard } from '@/components/widgets/KpiCard';
 import { FundCard } from '@/components/widgets/FundCard';
 import { SecondaryMarketCard } from '@/components/widgets/SecondaryMarketCard';
@@ -45,8 +45,8 @@ function SubSection({ title, children }: { title: string; children: ReactNode })
 }
 
 const colors = [
-  { name: '--ih-primary', hex: '#0D3D56', label: 'Primary (bleu marine)' },
-  { name: '--ih-primary-light', hex: '#1A5C7A', label: 'Primary light' },
+  { name: '--ih-primary', hex: '#0E2A32', label: 'Primary (bleu marine)' },
+  { name: '--ih-primary-light', hex: '#1a4050', label: 'Primary light' },
   { name: '--ih-accent', hex: '#CBFF99', label: 'Accent (lime)' },
   { name: '--ih-bg', hex: '#F5F7FA', label: 'Background' },
   { name: '--ih-bg-card', hex: '#FFFFFF', label: 'Card background' },
@@ -219,7 +219,7 @@ export default function DesignSystemPage() {
   summary={() => <Table.Summary.Row>...</Table.Summary.Row>}
 />`}>
             <div style={{ paddingTop: 40 }}>
-              <SubscriptionTable data={subscriptions} />
+              <Suspense fallback={null}><SubscriptionTable data={subscriptions} /></Suspense>
             </div>
           </WidgetWrapper>
 
@@ -267,11 +267,13 @@ export function FundCard({ name, closeDate, image, description, docs }) {
     </Card>
   );
 }`}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 40 }}>
-              <FundCard {...funds[0]} />
-              <FundCard {...funds[2]} />
-              <FundCard {...funds[3]} />
-            </div>
+            <Suspense fallback={null}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 40 }}>
+                <FundCard {...funds[0]} detailHref={`/funds/${funds[0].id}`} />
+                <FundCard {...funds[2]} detailHref={`/funds/${funds[2].id}`} />
+                <FundCard {...funds[3]} detailHref={`/funds/${funds[3].id}`} />
+              </div>
+            </Suspense>
           </WidgetWrapper>
 
           <WidgetWrapper title="SecondaryMarketCard" codeSource={`export function SecondaryMarketCard({ fund, part, shares, price, validUntil }) {
@@ -548,7 +550,7 @@ export function PerformanceChart({ data, height = 280 }) {
       {({ width }) => (
         <svg width={width} height={height}>
           <LinePath data={data} x={d => xScale(d.date)} y={d => yScale(d.nav)}
-            stroke="#0D3D56" strokeWidth={2.5} curve={curveMonotoneX} />
+            stroke="#0E2A32" strokeWidth={2.5} curve={curveMonotoneX} />
           <AxisBottom scale={xScale} />
           <AxisLeft scale={yScale} />
         </svg>
@@ -629,7 +631,7 @@ export function DocumentExplorer({ documents }) {
             </div>
           </WidgetWrapper>
 
-          <WidgetWrapper title="Progress" codeSource={`<Progress percent={65} strokeColor="#0D3D56" />
+          <WidgetWrapper title="Progress" codeSource={`<Progress percent={65} strokeColor="#0E2A32" />
 <Progress type="circle" percent={75} strokeColor="#CBFF99" />`}>
             <div style={{ paddingTop: 40, display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 200 }}>

@@ -1,9 +1,15 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Table, Select, Space, Button, Tooltip, Typography, Tag } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer } from 'antd';
+import type { MenuProps } from 'antd';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { SELL_MODAL_CODE } from '@/lib/code-sources';
+import { redemptions as allRedemptions } from '@/data/mock';
 
 interface Subscription {
   id: number;
@@ -15,21 +21,363 @@ interface Subscription {
   distributed: number;
   valuation: number | null;
   status: string;
+  fundType?: 'call' | 'direct';
+  navPerShare?: number;
+  navDate?: string;
+  shares?: number;
 }
 
 interface SubscriptionTableProps {
   data: Subscription[];
 }
 
-function formatEur(value: number | null): string {
+function formatEur(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)', marginBottom: 6 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: Subscription | null; open: boolean; onClose: () => void; onCopyLink: () => void }) {
+  const [salePrice, setSalePrice] = useState<number | null>(null);
+  const [partsCount, setPartsCount] = useState<number | null>(null);
+  const [ribFile, setRibFile] = useState<File | null>(null);
+  const [codeOpen, setCodeOpen] = useState(false);
+
+  if (!subscription) return null;
+
+  const nav = subscription.navPerShare ?? null;
+  const totalShares = subscription.shares ?? null;
+  const minPrice = nav ? Math.round(nav * 0.90 * 100) / 100 : null;
+  const maxPrice = nav ? Math.round(nav * 1.15 * 100) / 100 : null;
+  const isCallFund = subscription.fundType === 'call';
+  const calledPct = subscription.amount > 0 ? Math.round((subscription.called / subscription.amount) * 100) : 0;
+  const remainingEngagement = subscription.amount - subscription.called;
+  const effectivePrice = salePrice ?? nav ?? 0;
+  const effectiveParts = partsCount ?? 1;
+  const totalSale = effectivePrice * effectiveParts;
+  // Engagement transféré = proportion des parts vendues × engagement restant total
+  const engagementTransferred = totalShares && totalShares > 0
+    ? (remainingEngagement / totalShares) * effectiveParts
+    : remainingEngagement;
+  const netAmount = totalSale - engagementTransferred;
+
+  function reset() {
+    setSalePrice(null);
+    setPartsCount(null);
+    setRibFile(null);
+  }
+
+  return (
+    <>
+    <Modal
+      open={open}
+      onCancel={() => { onClose(); reset(); }}
+      footer={null}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 32 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
+            Vente de parts - {subscription.fund}{subscription.part ? ` (${subscription.part})` : ''}
+          </span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button type="text" size="small" icon={<CodeOutlined />} onClick={() => setCodeOpen(true)} style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}>
+              Code
+            </Button>
+            <Button
+              type="text"
+              size="small"
+              icon={<LinkOutlined />}
+              onClick={onCopyLink}
+              style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}
+            >
+              Copier le lien
+            </Button>
+          </div>
+        </div>
+      }
+      width={640}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 8 }}>
+
+        {/* Montant appelé et payé — fonds à appel uniquement */}
+        {isCallFund && (
+          <Field label="Montant appelé et payé">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1, height: 6, background: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ width: `${calledPct}%`, height: '100%', background: 'var(--ih-primary)', borderRadius: 3 }} />
+              </div>
+              <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)', whiteSpace: 'nowrap' }}>
+                {formatEur(subscription.called)} / {formatEur(subscription.amount)} ({calledPct}%)
+              </span>
+            </div>
+          </Field>
+        )}
+
+        {/* Valeur actuelle d'une part */}
+        {nav && (
+          <Field label={`Valeur actuelle d'une part ${formatEur(nav)}`}>
+            <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>
+              Basée sur la dernière valorisation en date du {subscription.navDate ?? '—'}
+            </div>
+          </Field>
+        )}
+
+        {/* Prix de vente souhaité */}
+        <Field label="Prix de vente souhaité (par part) :">
+          {minPrice && maxPrice && (
+            <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
+              Doit être compris entre <strong>-10,00%</strong> et <strong>+15,00%</strong> soit{' '}
+              <strong>{formatEur(minPrice)}</strong> et <strong>{formatEur(maxPrice)}</strong>
+            </div>
+          )}
+          <InputNumber
+            style={{ width: '100%' }}
+            min={minPrice ?? 0}
+            max={maxPrice ?? undefined}
+            value={salePrice ?? (nav ?? undefined)}
+            onChange={setSalePrice}
+            decimalSeparator=","
+            addonAfter="€"
+          />
+        </Field>
+
+        {/* Nombre de parts */}
+        <Field label="Nombre de parts que vous souhaitez vendre :">
+          <InputNumber
+            style={{ width: '100%' }}
+            min={1}
+            max={totalShares ?? undefined}
+            value={partsCount ?? 1}
+            onChange={setPartsCount}
+          />
+        </Field>
+
+        {/* Date de validité */}
+        <Field label="Date de fin de validité de l'offre :">
+          <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="JJ/MM/AAAA" />
+        </Field>
+
+        {/* RIB */}
+        <Field label="RIB du vendeur :">
+          <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
+            Document bancaire pour la transmission des fonds suite à la cession (PDF, JPG…)
+          </div>
+          <Upload
+            maxCount={1}
+            beforeUpload={file => { setRibFile(file); return false; }}
+            onRemove={() => setRibFile(null)}
+            accept=".pdf,.jpg,.jpeg,.png"
+          >
+            <Button icon={<UploadOutlined />}>
+              {ribFile ? ribFile.name : 'Déposer votre RIB'}
+            </Button>
+          </Upload>
+        </Field>
+
+        {/* Avertissement engagement — fonds à appel avec engagement restant */}
+        {isCallFund && engagementTransferred > 0 && (
+          <div style={{ fontSize: 13, color: 'var(--ih-text-primary)' }}>
+            ⚠ Attention : en vendant ces parts, l&apos;acheteur reprend aussi votre engagement futur de{' '}
+            <strong>{formatEur(engagementTransferred)}</strong>
+            {totalShares && totalShares > effectiveParts && (
+              <span style={{ color: 'var(--ih-text-secondary)', fontWeight: 400 }}>
+                {' '}({formatEur(remainingEngagement / totalShares)} / part)
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Totaux */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>
+            Montant total de la vente : {formatEur(totalSale)}
+          </div>
+          {isCallFund && (
+            <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>
+              Montant net estimé après transfert d&apos;engagement : {formatEur(netAmount)}
+            </div>
+          )}
+        </div>
+
+        {/* CTA */}
+        <div style={{ borderTop: '1px solid var(--ih-border)', paddingTop: 16 }}>
+          <Button
+            type="primary"
+            style={{ width: '100%' }}
+            disabled={!ribFile}
+            onClick={() => { onClose(); reset(); }}
+          >
+            Mettre en vente
+          </Button>
+        </div>
+      </div>
+    </Modal>
+
+    <Drawer open={codeOpen} onClose={() => setCodeOpen(false)} title="Code — SellModal" width={640} zIndex={1100}>
+      <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
+        {SELL_MODAL_CODE}
+      </SyntaxHighlighter>
+    </Drawer>
+    </>
+  );
+}
+
+function RedemptionOnboardingModal({ open, onClose, subscription }: { open: boolean; onClose: () => void; subscription: Subscription | null }) {
+  if (!subscription) return null;
+  return (
+    <Modal open={open} onCancel={onClose} footer={null} title="Rachat libre" width={480}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '24px 0 8px', textAlign: 'center' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--ih-bg)', border: '1px solid var(--ih-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <RollbackOutlined style={{ fontSize: 22, color: 'var(--ih-primary)' }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ih-text-primary)', marginBottom: 6 }}>
+            Demande de rachat — {subscription.fund}{subscription.part ? ` (${subscription.part})` : ''}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ih-text-secondary)', lineHeight: 1.6, maxWidth: 340 }}>
+            Ce bouton redirige l&apos;investisseur vers l&apos;onboarding de demande de rachat configuré pour ce fonds.
+          </div>
+        </div>
+        <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#92400e', width: '100%', textAlign: 'left', lineHeight: 1.6 }}>
+          <strong>Note développeur :</strong> Redirection vers l&apos;onboarding de rachat v1 (paramétré au niveau du fonds / des parts). Le reste du workflow (validation, signature, paiement) est géré dans le back-office.
+        </div>
+        <Button type="primary" style={{ width: '100%' }} onClick={onClose}>
+          Accéder à l&apos;onboarding de rachat
+        </Button>
+        <Button style={{ width: '100%' }} onClick={onClose}>Annuler</Button>
+      </div>
+    </Modal>
+  );
+}
+
+type RedemptionStatus = 'to_sign' | 'valid';
+
+const REDEMPTION_STATUS_LABEL: Record<RedemptionStatus, string> = {
+  to_sign: 'À signer',
+  valid: 'Validé',
+};
+const REDEMPTION_STATUS_COLOR: Record<RedemptionStatus, string> = {
+  to_sign: 'orange',
+  valid: 'success',
+};
+
+function RedemptionHistoryModal({ open, onClose, subscription }: { open: boolean; onClose: () => void; subscription: Subscription | null }) {
+  if (!subscription) return null;
+  const items = allRedemptions.filter(r => r.subscriptionId === subscription.id);
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={<Button onClick={onClose}>Fermer</Button>}
+      title={`Historique des rachats — Souscription ${subscription.fund}${subscription.part ? ` · ${subscription.part}` : ''}`}
+      width={720}
+    >
+      <Table
+        dataSource={items}
+        rowKey="id"
+        size="middle"
+        pagination={false}
+        style={{ marginTop: 8 }}
+        columns={[
+          {
+            title: 'Date',
+            dataIndex: 'date',
+            key: 'date',
+            render: v => <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>{v}</span>,
+          },
+          {
+            title: 'Nombre de parts',
+            dataIndex: 'shares',
+            key: 'shares',
+            render: v => <span style={{ fontSize: 13 }}>{v.toLocaleString('fr-FR')}</span>,
+          },
+          {
+            title: 'Montant',
+            dataIndex: 'amount',
+            key: 'amount',
+            align: 'right' as const,
+            render: v => <span style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap' }}>{formatEur(v)}</span>,
+          },
+          {
+            title: 'Statut',
+            dataIndex: 'status',
+            key: 'status',
+            render: (v: RedemptionStatus) => (
+              <span style={{
+                display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                background: v === 'to_sign' ? '#FFF7ED' : '#F0FDF4',
+                color: v === 'to_sign' ? '#d97706' : '#16a34a',
+                border: `1px solid ${v === 'to_sign' ? '#FED7AA' : '#BBF7D0'}`,
+              }}>
+                {REDEMPTION_STATUS_LABEL[v] ?? v}
+              </span>
+            ),
+          },
+          {
+            title: 'Documents',
+            dataIndex: 'docName',
+            key: 'docName',
+            render: (v: string | null) => v
+              ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13 }}>{v}</span>
+                  <Button type="text" size="small" icon={<DownloadOutlined />} style={{ color: 'var(--ih-primary)', padding: 0 }} />
+                </div>
+              )
+              : <span style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>Aucun document</span>,
+          },
+        ]}
+      />
+    </Modal>
+  );
 }
 
 export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const [fundFilter, setFundFilter] = useState<string | undefined>(undefined);
   const [partFilter, setPartFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const modalType = searchParams.get('modal');
+  const modalId = searchParams.get('id') ? Number(searchParams.get('id')) : null;
+  const sellTarget = modalType === 'sell' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
+  const redeemTarget = modalType === 'redeem' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
+  const historyTarget = modalType === 'redemption-history' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
+
+  function openModal(type: string, record: Subscription) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('modal', type);
+    params.set('id', String(record.id));
+    router.replace(`${pathname}?${params.toString()}`);
+  }
+
+  function closeModal() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('modal');
+    params.delete('id');
+    router.replace(`${pathname}?${params.toString()}`);
+  }
+
+  // keep backward compat aliases
+  const openSell = (r: Subscription) => openModal('sell', r);
+  const closeSell = closeModal;
+
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      messageApi.success('Lien copié !');
+    });
+  }
 
   const funds = useMemo(() => Array.from(new Set(data.map(d => d.fund))), [data]);
   const parts = useMemo(() => Array.from(new Set(data.map(d => d.part).filter(Boolean) as string[])), [data]);
@@ -116,27 +464,25 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
     {
       title: 'Actions',
       key: 'actions',
-      width: 100,
+      width: 60,
+      align: 'right' as const,
       render: (_, record) => {
-        if (record.status === 'valid') {
-          return (
-            <Tooltip title="Plus d'actions">
-              <Button type="text" icon={<EllipsisOutlined />} size="small" />
-            </Tooltip>
-          );
-        }
+        const hasRedemptions = allRedemptions.some(r => r.subscriptionId === record.id);
+        const validItems: MenuProps['items'] = [
+          { key: 'sell', label: 'Vendre', icon: <ShoppingOutlined />, onClick: () => openSell(record) },
+          { key: 'redeem', label: 'Rachat libre', icon: <RollbackOutlined />, onClick: () => openModal('redeem', record) },
+          ...(hasRedemptions ? [{ key: 'redemption-history', label: 'Historique des rachats', icon: <HistoryOutlined />, onClick: () => openModal('redemption-history', record) }] : []),
+          { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
+        ];
+        const otherItems: MenuProps['items'] = [
+          { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
+          { key: 'edit', label: 'Modifier', icon: <EditOutlined /> },
+          { key: 'delete', label: 'Supprimer', icon: <DeleteOutlined />, danger: true },
+        ];
         return (
-          <Space size={4}>
-            <Tooltip title="Voir">
-              <Button type="text" icon={<EyeOutlined />} size="small" />
-            </Tooltip>
-            <Tooltip title="Modifier">
-              <Button type="text" icon={<EditOutlined />} size="small" />
-            </Tooltip>
-            <Tooltip title="Supprimer">
-              <Button type="text" icon={<DeleteOutlined />} size="small" danger />
-            </Tooltip>
-          </Space>
+          <Dropdown menu={{ items: record.status === 'valid' ? validItems : otherItems }} trigger={['click']} placement="bottomRight">
+            <Button type="text" icon={<MoreOutlined />} size="small" />
+          </Dropdown>
         );
       },
     },
@@ -181,30 +527,50 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         </div>
       </div>
 
-      <Table
-        dataSource={filtered}
-        columns={columns}
-        rowKey="id"
-        pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (total) => `${total} souscription${total > 1 ? 's' : ''}` }}
-        size="middle"
-        style={{ borderRadius: 12, overflow: 'hidden' }}
-        summary={() => (
-          <Table.Summary.Row style={{ background: 'var(--ih-bg)', fontWeight: 600 }}>
-            <Table.Summary.Cell index={0} colSpan={3}>
-              <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>Total</span>
-            </Table.Summary.Cell>
-            <Table.Summary.Cell index={3} align="right">
-              <span style={{ fontWeight: 700 }}>{formatEur(totals.amount)}</span>
-            </Table.Summary.Cell>
-            <Table.Summary.Cell index={4} align="right">
-              <span>{formatEur(totals.called)}</span>
-            </Table.Summary.Cell>
-            <Table.Summary.Cell index={5} align="right">
-              <span>{formatEur(totals.distributed)}</span>
-            </Table.Summary.Cell>
-            <Table.Summary.Cell index={6} colSpan={3} />
-          </Table.Summary.Row>
-        )}
+      <ConfigProvider theme={{ token: { colorFillAlter: '#ffffff' } }}>
+        <Table
+          dataSource={filtered}
+          columns={columns}
+          rowKey="id"
+          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (total) => `${total} souscription${total > 1 ? 's' : ''}` }}
+          size="middle"
+          style={{ borderRadius: 12, overflow: 'hidden', background: '#fff' }}
+          summary={() => (
+            <Table.Summary.Row style={{ background: '#fff', fontWeight: 600 }}>
+              <Table.Summary.Cell index={0} colSpan={3}>
+                <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>Total</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={3} align="right">
+                <span style={{ fontWeight: 700 }}>{formatEur(totals.amount)}</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={4} align="right">
+                <span>{formatEur(totals.called)}</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={5} align="right">
+                <span>{formatEur(totals.distributed)}</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={6} colSpan={3} />
+            </Table.Summary.Row>
+          )}
+        />
+      </ConfigProvider>
+
+      {contextHolder}
+      <SellModal
+        subscription={sellTarget}
+        open={sellTarget !== null}
+        onClose={closeSell}
+        onCopyLink={copyLink}
+      />
+      <RedemptionOnboardingModal
+        open={redeemTarget !== null}
+        onClose={closeModal}
+        subscription={redeemTarget}
+      />
+      <RedemptionHistoryModal
+        open={historyTarget !== null}
+        onClose={closeModal}
+        subscription={historyTarget}
       />
     </div>
   );

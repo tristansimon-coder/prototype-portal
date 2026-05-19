@@ -6,35 +6,7 @@ import { KpiCard } from '@/components/widgets/KpiCard';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
 import { navPerformance, portfolioKpis } from '@/data/mock';
 import { RiseOutlined, FallOutlined } from '@ant-design/icons';
-
-const chartCode = `import { LinePath } from '@visx/shape';
-import { scaleLinear, scalePoint } from '@visx/scale';
-import { AxisBottom, AxisLeft } from '@visx/axis';
-import { ParentSize } from '@visx/responsive';
-import { curveMonotoneX } from '@visx/curve';
-import { useTooltip, TooltipWithBounds } from '@visx/tooltip';
-
-export function PerformanceChart({ data, height = 280 }) {
-  const { showTooltip, hideTooltip, tooltipData } = useTooltip();
-  return (
-    <ParentSize>
-      {({ width }) => (
-        <svg width={width} height={height}>
-          <LinePath
-            data={data}
-            x={d => xScale(d.date)}
-            y={d => yScale(d.nav)}
-            stroke="#0D3D56"
-            strokeWidth={2.5}
-            curve={curveMonotoneX}
-          />
-          <AxisBottom scale={xScale} />
-          <AxisLeft scale={yScale} />
-        </svg>
-      )}
-    </ParentSize>
-  );
-}`;
+import { PERFORMANCE_CHART_CODE } from '@/lib/code-sources';
 
 export default function PerformancesPage() {
   const lastNav = navPerformance[navPerformance.length - 1]?.nav ?? 0;
@@ -68,7 +40,7 @@ export default function PerformancesPage() {
         />
       </div>
 
-      <WidgetWrapper title="PerformanceChart" codeSource={chartCode}>
+      <WidgetWrapper title="PerformanceChart" codeSource={PERFORMANCE_CHART_CODE}>
         <Card style={{ borderRadius: 12, paddingTop: 32 }}>
           <div style={{ marginBottom: 16 }}>
             <Typography.Title level={4} style={{ margin: 0 }}>Courbe NAV</Typography.Title>
