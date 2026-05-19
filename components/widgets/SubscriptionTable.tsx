@@ -1,9 +1,10 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload } from 'antd';
+import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 
 interface Subscription {
@@ -40,7 +41,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SellModal({ subscription, open, onClose }: { subscription: Subscription | null; open: boolean; onClose: () => void }) {
+function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: Subscription | null; open: boolean; onClose: () => void; onCopyLink: () => void }) {
   const [salePrice, setSalePrice] = useState<number | null>(null);
   const [partsCount, setPartsCount] = useState<number | null>(null);
   const [ribFile, setRibFile] = useState<File | null>(null);
@@ -71,9 +72,20 @@ function SellModal({ subscription, open, onClose }: { subscription: Subscription
       onCancel={() => { onClose(); reset(); }}
       footer={null}
       title={
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
-          Vente de parts - {subscription.fund}{subscription.part ? ` (${subscription.part})` : ''}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 32 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
+            Vente de parts - {subscription.fund}{subscription.part ? ` (${subscription.part})` : ''}
+          </span>
+          <Button
+            type="text"
+            size="small"
+            icon={<LinkOutlined />}
+            onClick={onCopyLink}
+            style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}
+          >
+            Copier le lien
+          </Button>
+        </div>
       }
       width={640}
     >
@@ -194,7 +206,34 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const [fundFilter, setFundFilter] = useState<string | undefined>(undefined);
   const [partFilter, setPartFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [sellTarget, setSellTarget] = useState<Subscription | null>(null);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const sellId = searchParams.get('modal') === 'sell' ? Number(searchParams.get('id')) : null;
+  const sellTarget = sellId ? (data.find(d => d.id === sellId) ?? null) : null;
+
+  function openSell(record: Subscription) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('modal', 'sell');
+    params.set('id', String(record.id));
+    router.replace(`${pathname}?${params.toString()}`);
+  }
+
+  function closeSell() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('modal');
+    params.delete('id');
+    router.replace(`${pathname}?${params.toString()}`);
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      messageApi.success('Lien copié !');
+    });
+  }
 
   const funds = useMemo(() => Array.from(new Set(data.map(d => d.fund))), [data]);
   const parts = useMemo(() => Array.from(new Set(data.map(d => d.part).filter(Boolean) as string[])), [data]);
@@ -285,7 +324,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
       align: 'right' as const,
       render: (_, record) => {
         const validItems: MenuProps['items'] = [
-          { key: 'sell', label: 'Vendre', icon: <ShoppingOutlined />, onClick: () => setSellTarget(record) },
+          { key: 'sell', label: 'Vendre', icon: <ShoppingOutlined />, onClick: () => openSell(record) },
           { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
         ];
         const otherItems: MenuProps['items'] = [
@@ -369,10 +408,12 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         />
       </ConfigProvider>
 
+      {contextHolder}
       <SellModal
         subscription={sellTarget}
         open={sellTarget !== null}
-        onClose={() => setSellTarget(null)}
+        onClose={closeSell}
+        onCopyLink={copyLink}
       />
     </div>
   );
