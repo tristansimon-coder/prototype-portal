@@ -4,25 +4,14 @@ import { KpiCard } from '@/components/widgets/KpiCard';
 import { SubscriptionTable } from '@/components/widgets/SubscriptionTable';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
 import { subscriptions, portfolioKpis } from '@/data/mock';
-
-const tableCode = `interface Subscription {
-  id: number;
-  fund: string;
-  part: string | null;
-  date: string;
-  amount: number;
-  called: number;
-  distributed: number;
-  valuation: number | null;
-  status: string;
-}`;
+import { KPI_CARD_CODE, SUBSCRIPTION_TABLE_CODE } from '@/lib/code-sources';
 
 export default function SubscriptionsPage() {
   return (
     <div>
       <PageHeader title="Mes souscriptions" />
 
-      <WidgetWrapper title="KPI Header" codeSource={tableCode}>
+      <WidgetWrapper title="KpiCard" codeSource={KPI_CARD_CODE}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32, paddingTop: 40 }}>
           <KpiCard label="Engagement total" value={portfolioKpis.totalEngagement} format="currency" tooltip="Montant total engagé" />
           <KpiCard label="Total appelé" value={portfolioKpis.totalCalled} format="currency" tooltip="Montant total appelé" />
@@ -31,7 +20,7 @@ export default function SubscriptionsPage() {
         </div>
       </WidgetWrapper>
 
-      <WidgetWrapper title="SubscriptionTable" codeSource={tableCode}>
+      <WidgetWrapper title="SubscriptionTable" codeSource={SUBSCRIPTION_TABLE_CODE}>
         <div style={{ paddingTop: 40 }}>
           <SubscriptionTable data={subscriptions} />
         </div>

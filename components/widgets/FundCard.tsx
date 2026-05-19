@@ -55,16 +55,15 @@ export function FundCard({ name, closeDate, image, description, docs }: FundCard
           </div>
         )}
         <div style={{ flex: 1 }} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 4 }}>
+          <Button
+            type="primary"
+            style={{ background: 'var(--ih-primary)', border: 'none', fontWeight: 600, fontSize: 13, borderRadius: 6 }}
+          >
+            Voir plus &gt;
+          </Button>
+        </div>
       </div>
-
-      {/* CTA */}
-      <Button
-        type="primary"
-        block
-        style={{ borderRadius: '0 0 12px 12px', height: 42, background: 'var(--ih-primary)', border: 'none', fontWeight: 600, fontSize: 14 }}
-      >
-        Voir plus &gt;
-      </Button>
     </Card>
   );
 }

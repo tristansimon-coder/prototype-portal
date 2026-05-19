@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Table, Select, Space, Button, Tooltip, Typography, Tag } from 'antd';
+import { Table, Select, Space, Button, Tooltip, Typography, Tag, ConfigProvider } from 'antd';
 import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, EllipsisOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -181,31 +181,33 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         </div>
       </div>
 
-      <Table
-        dataSource={filtered}
-        columns={columns}
-        rowKey="id"
-        pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (total) => `${total} souscription${total > 1 ? 's' : ''}` }}
-        size="middle"
-        style={{ borderRadius: 12, overflow: 'hidden' }}
-        summary={() => (
-          <Table.Summary.Row style={{ background: 'var(--ih-bg)', fontWeight: 600 }}>
-            <Table.Summary.Cell index={0} colSpan={3}>
-              <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>Total</span>
-            </Table.Summary.Cell>
-            <Table.Summary.Cell index={3} align="right">
-              <span style={{ fontWeight: 700 }}>{formatEur(totals.amount)}</span>
-            </Table.Summary.Cell>
-            <Table.Summary.Cell index={4} align="right">
-              <span>{formatEur(totals.called)}</span>
-            </Table.Summary.Cell>
-            <Table.Summary.Cell index={5} align="right">
-              <span>{formatEur(totals.distributed)}</span>
-            </Table.Summary.Cell>
-            <Table.Summary.Cell index={6} colSpan={3} />
-          </Table.Summary.Row>
-        )}
-      />
+      <ConfigProvider theme={{ token: { colorFillAlter: '#ffffff' } }}>
+        <Table
+          dataSource={filtered}
+          columns={columns}
+          rowKey="id"
+          pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (total) => `${total} souscription${total > 1 ? 's' : ''}` }}
+          size="middle"
+          style={{ borderRadius: 12, overflow: 'hidden', background: '#fff' }}
+          summary={() => (
+            <Table.Summary.Row style={{ background: '#fff', fontWeight: 600 }}>
+              <Table.Summary.Cell index={0} colSpan={3}>
+                <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>Total</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={3} align="right">
+                <span style={{ fontWeight: 700 }}>{formatEur(totals.amount)}</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={4} align="right">
+                <span>{formatEur(totals.called)}</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={5} align="right">
+                <span>{formatEur(totals.distributed)}</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={6} colSpan={3} />
+            </Table.Summary.Row>
+          )}
+        />
+      </ConfigProvider>
     </div>
   );
 }

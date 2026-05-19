@@ -6,31 +6,8 @@ import { PerformanceChart } from '@/components/widgets/PerformanceChart';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
 import { portfolioKpis, funds, documents, navPerformance } from '@/data/mock';
 import { Typography, List, Tag } from 'antd';
-import { FileOutlined } from '@ant-design/icons';
-
-const kpiCardCode = `interface KpiCardProps {
-  label: string;
-  value: number | string;
-  format?: 'currency' | 'percentage' | 'number';
-  trend?: number;
-  icon?: ReactNode;
-  loading?: boolean;
-  tooltip?: string;
-}`;
-
-const fundCardCode = `interface FundCardProps {
-  id: number;
-  name: string;
-  closeDate?: string;
-  image: string | null;
-  description: string[];
-  docs?: string[];
-}`;
-
-const performanceCode = `interface PerformanceChartProps {
-  data: { date: string; nav: number }[];
-  height?: number;
-}`;
+import { DocumentIcon } from '@/components/shared/Icons';
+import { KPI_CARD_CODE, FUND_CARD_CODE, PERFORMANCE_CHART_CODE } from '@/lib/code-sources';
 
 export default function HomePage() {
   const featuredFunds = funds.slice(0, 3);
@@ -41,7 +18,7 @@ export default function HomePage() {
       <PageHeader title="Home" />
 
       {/* KPI Cards */}
-      <WidgetWrapper title="KPI Cards" codeSource={kpiCardCode}>
+      <WidgetWrapper title="KpiCard" codeSource={KPI_CARD_CODE}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32, paddingTop: 40 }}>
           <KpiCard label="Engagement total" value={portfolioKpis.totalEngagement} format="currency" tooltip="Montant total engagé" />
           <KpiCard label="Total appelé" value={portfolioKpis.totalCalled} format="currency" tooltip="Montant total appelé" />
@@ -53,7 +30,7 @@ export default function HomePage() {
       {/* Featured Funds */}
       <div style={{ marginBottom: 32 }}>
         <Typography.Title level={4} style={{ marginBottom: 16 }}>Fonds en vedette</Typography.Title>
-        <WidgetWrapper title="FundCard" codeSource={fundCardCode}>
+        <WidgetWrapper title="FundCard" codeSource={FUND_CARD_CODE}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 40 }}>
             {featuredFunds.map(fund => (
               <FundCard key={fund.id} {...fund} />
@@ -66,7 +43,7 @@ export default function HomePage() {
       <div style={{ marginBottom: 32, background: 'var(--ih-bg-card)', borderRadius: 12, padding: 24, border: '1px solid var(--ih-border)' }}>
         <Typography.Title level={4} style={{ marginBottom: 4 }}>Performance du portefeuille</Typography.Title>
         <Typography.Text style={{ color: 'var(--ih-text-secondary)', fontSize: 13 }}>Évolution de la NAV sur 24 mois</Typography.Text>
-        <WidgetWrapper title="PerformanceChart" codeSource={performanceCode}>
+        <WidgetWrapper title="PerformanceChart" codeSource={PERFORMANCE_CHART_CODE}>
           <div style={{ marginTop: 40 }}>
             <PerformanceChart data={navPerformance} height={260} />
           </div>
@@ -86,7 +63,7 @@ export default function HomePage() {
               }
             >
               <List.Item.Meta
-                avatar={<FileOutlined style={{ fontSize: 20, color: 'var(--ih-primary)', marginTop: 2 }} />}
+                avatar={<DocumentIcon size={22} />}
                 title={<span style={{ fontWeight: 500 }}>{doc.name}</span>}
                 description={<span style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>{doc.type} · {doc.size} · {doc.addedAt}</span>}
               />

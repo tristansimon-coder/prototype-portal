@@ -1,7 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Tree, Table, Tag, Space, Typography, Breadcrumb, Tooltip } from 'antd';
-import { FolderOutlined, FileTextOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Tree, Table, Tag, Space, Typography, Tooltip } from 'antd';
+import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
+import { DocumentIcon, FolderIcon } from '@/components/shared/Icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { DataNode } from 'antd/es/tree';
 
@@ -28,7 +29,7 @@ export function DocumentExplorer({ documents }: DocumentExplorerProps) {
     return {
       key: fund,
       title: `${fund} (${count})`,
-      icon: <FolderOutlined />,
+      icon: <FolderIcon size={16} />,
       isLeaf: true,
     };
   }), [funds, documents]);
@@ -45,7 +46,7 @@ export function DocumentExplorer({ documents }: DocumentExplorerProps) {
       sorter: (a, b) => a.name.localeCompare(b.name),
       render: (_, doc) => (
         <Space>
-          <FileTextOutlined style={{ color: 'var(--ih-primary)', fontSize: 18 }} />
+          <DocumentIcon size={22} />
           <div>
             <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
               {doc.name}

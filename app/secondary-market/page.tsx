@@ -4,28 +4,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { SecondaryMarketCard } from '@/components/widgets/SecondaryMarketCard';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
 import { secondaryMarket } from '@/data/mock';
-
-const cardCode = `interface SecondaryMarketCardProps {
-  fund: string;
-  part: string;
-  shares: number;
-  price: number;
-  validUntil: string;
-}
-
-export function SecondaryMarketCard({ fund, part, shares, price, validUntil }) {
-  return (
-    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 12, padding: '20px 24px' }}>
-      <div style={{ fontWeight: 700, fontSize: 18 }}>{fund}</div>
-      <div style={{ fontSize: 13, color: '#6B7280' }}>{part}</div>
-      <div>Nombre de parts : {shares}</div>
-      <div>Prix de cession : {price} €</div>
-      <div>Offre valable jusqu'au {validUntil}</div>
-      <Button>Détails</Button>
-      <Button type="primary">Acheter</Button>
-    </div>
-  );
-}`;
+import { SECONDARY_MARKET_CARD_CODE } from '@/lib/code-sources';
 
 export default function SecondaryMarketPage() {
   const funds = Array.from(new Set(secondaryMarket.map(s => s.fund)));
@@ -41,7 +20,7 @@ export default function SecondaryMarketPage() {
         style={{ marginBottom: 24, borderRadius: 8 }}
       />
 
-      <WidgetWrapper title="SecondaryMarketCard" codeSource={cardCode}>
+      <WidgetWrapper title="SecondaryMarketCard" codeSource={SECONDARY_MARKET_CARD_CODE}>
         <div style={{ paddingTop: 40 }}>
           <Tabs
             items={funds.map(fund => ({

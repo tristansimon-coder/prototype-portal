@@ -24,7 +24,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <Layout style={{ marginLeft: 220 }}>
         <Content
           style={{
-            padding: '32px',
+            padding: '32px 64px',
             minHeight: '100vh',
             background: 'var(--ih-bg)',
           }}
