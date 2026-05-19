@@ -9,7 +9,7 @@ export const investHubTheme: ThemeConfig = {
     colorError: '#ff4d4f',
     colorInfo: '#1677ff',
     borderRadius: 8,
-    fontFamily: "'DM Sans', sans-serif",
+    fontFamily: "'Montserrat', sans-serif",
     fontSize: 14,
   },
   components: {
