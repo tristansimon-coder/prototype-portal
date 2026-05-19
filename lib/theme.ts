@@ -12,4 +12,20 @@ export const investHubTheme: ThemeConfig = {
     fontFamily: "'DM Sans', sans-serif",
     fontSize: 14,
   },
+  components: {
+    Button: {
+      // Primary: navy filled
+      colorPrimary: '#0D3D56',
+      colorPrimaryHover: '#1A5C7A',
+      colorPrimaryActive: '#0a2e40',
+      primaryColor: '#ffffff',
+      // Default (secondary): white + border
+      defaultBorderColor: '#D1D5DB',
+      defaultColor: '#1A1A2E',
+      defaultBg: '#ffffff',
+      defaultHoverBorderColor: '#0D3D56',
+      defaultHoverColor: '#0D3D56',
+      defaultHoverBg: '#ffffff',
+    },
+  },
 };

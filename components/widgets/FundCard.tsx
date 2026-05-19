@@ -38,31 +38,40 @@ export function FundCard({ name, closeDate, image, description, docs }: FundCard
       </div>
 
       {/* Content */}
-      <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{ margin: '0 0 10px', fontSize: 17, fontWeight: 700, color: 'var(--ih-text-primary)' }}>{name}</h3>
+      <div style={{ padding: '20px 20px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: 'var(--ih-text-primary)' }}>{name}</h3>
         {description.length > 0 && (
-          <ul style={{ margin: '0 0 12px', paddingLeft: 18, color: 'var(--ih-text-secondary)', fontSize: 13.5, lineHeight: 1.6 }}>
+          <ul style={{ margin: '0 0 16px', paddingLeft: 18, color: 'var(--ih-text-secondary)', lineHeight: 1.7 }}>
             {description.map((d, i) => <li key={i}>{d}</li>)}
           </ul>
         )}
         {docs && docs.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {docs.map((doc) => (
-              <Button key={doc} size="small" icon={<DownloadOutlined />} style={{ borderRadius: 6, fontSize: 11.5 }}>
+              <Button key={doc} size="small" icon={<DownloadOutlined />} style={{ borderRadius: 20, fontSize: 12, borderColor: 'var(--ih-border)', color: 'var(--ih-text-primary)' }}>
                 {doc}
               </Button>
             ))}
           </div>
         )}
         <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 4 }}>
-          <Button
-            type="primary"
-            style={{ background: 'var(--ih-primary)', border: 'none', fontWeight: 600, fontSize: 13, borderRadius: 6 }}
-          >
-            Voir plus &gt;
-          </Button>
-        </div>
+      </div>
+
+      {/* CTA — full-width bar */}
+      <div
+        style={{
+          background: 'var(--ih-primary)',
+          color: 'white',
+          textAlign: 'right',
+          padding: '12px 20px',
+          fontWeight: 600,
+          fontSize: 14,
+          cursor: 'pointer',
+          borderRadius: '0 0 12px 12px',
+          userSelect: 'none',
+        }}
+      >
+        Voir plus &gt;
       </div>
     </Card>
   );
