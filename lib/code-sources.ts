@@ -573,6 +573,268 @@ export function SecondaryMarketCard({ fund, part, shares, price, validUntil }: S
 }
 `;
 
+export const SELL_MODAL_CODE = `'use client';
+// Modale de mise en vente — accessible via URL ?modal=sell&id={subscriptionId}
+// La modale s'ouvre automatiquement si les paramètres sont présents dans l'URL.
+
+import { Modal, InputNumber, DatePicker, Upload, Button, Drawer } from 'antd';
+import { LinkOutlined, CodeOutlined, UploadOutlined } from '@ant-design/icons';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+
+interface Subscription {
+  id: number;
+  fund: string;
+  part: string | null;
+  amount: number;
+  called: number;
+  fundType?: 'call' | 'direct';
+  navPerShare?: number;
+  navDate?: string;
+  shares?: number;
+}
+
+// Ouvrir : router.replace(\`\${pathname}?modal=sell&id=\${id}\`)
+// Fermer : router.replace(\`\${pathname}\`) (retirer modal + id)
+
+export function SellModal({ subscription, open, onClose, onCopyLink }) {
+  const [salePrice, setSalePrice] = useState(null);
+  const [partsCount, setPartsCount] = useState(null);
+  const [ribFile, setRibFile] = useState(null);
+  const [showCode, setShowCode] = useState(false);
+
+  const isCallFund = subscription?.fundType === 'call';
+  const nav = subscription?.navPerShare ?? null;
+  const totalShares = subscription?.shares ?? null;
+  const remainingEngagement = (subscription?.amount ?? 0) - (subscription?.called ?? 0);
+  const engagementTransferred = totalShares > 0
+    ? (remainingEngagement / totalShares) * (partsCount ?? 1)
+    : remainingEngagement;
+
+  return (
+    <>
+      <Modal
+        open={open}
+        onCancel={onClose}
+        footer={null}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Vente de parts — {subscription?.fund}</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button size="small" icon={<CodeOutlined />} onClick={() => setShowCode(true)}>Code</Button>
+              <Button size="small" icon={<LinkOutlined />} onClick={onCopyLink}>Copier le lien</Button>
+            </div>
+          </div>
+        }
+        width={640}
+      >
+        {/* Barre d'appel (fonds à appel) */}
+        {isCallFund && <ProgressBar called={subscription.called} amount={subscription.amount} />}
+
+        {/* Prix de vente */}
+        <InputNumber min={nav * 0.9} max={nav * 1.15} defaultValue={nav} addonAfter="€" />
+
+        {/* Nombre de parts */}
+        <InputNumber min={1} max={totalShares} defaultValue={1} />
+
+        {/* Date de fin */}
+        <DatePicker format="DD/MM/YYYY" />
+
+        {/* RIB */}
+        <Upload beforeUpload={f => { setRibFile(f); return false; }}>
+          <Button icon={<UploadOutlined />}>Déposer votre RIB</Button>
+        </Upload>
+
+        {/* Résumé engagement (fonds à appel) */}
+        {isCallFund && <EngagementSummary transferred={engagementTransferred} />}
+
+        <Button type="primary" disabled={!ribFile} onClick={onClose}>Mettre en vente</Button>
+      </Modal>
+
+      <Drawer open={showCode} onClose={() => setShowCode(false)} title="Code — SellModal" width={640}>
+        <SyntaxHighlighter language="tsx" style={oneLight}>{SELL_MODAL_CODE}</SyntaxHighlighter>
+      </Drawer>
+    </>
+  );
+}
+`;
+
+export const BUY_MODAL_CODE = `'use client';
+// Modale d'achat — accessible via URL ?modal=buy&id={offerId}
+// Comportement adapté selon persona : LP (recap) vs Distributeur (recap + sélecteur investisseur)
+
+import { Modal, Select, Button, Tag, Drawer } from 'antd';
+import { CodeOutlined } from '@ant-design/icons';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+
+interface Offer {
+  id: number;
+  fund: string;
+  part: string;
+  shares: number;
+  price: number;
+  validUntil: string;
+  fundType?: 'call' | 'direct';
+  navPerShare?: number;
+  engagementPerShare?: number;
+}
+
+// Ouvrir : router.replace(\`\${pathname}?modal=buy&id=\${offer.id}\`)
+// Fermer : router.replace(\`\${pathname}\`) (retirer modal + id)
+
+export function BuyModal({ offer, open, onClose, isDistributor }) {
+  const [investor, setInvestor] = useState(null);
+  const [showCode, setShowCode] = useState(false);
+
+  const isCall = offer?.fundType === 'call';
+  const totalToPay = (offer?.price ?? 0) * (offer?.shares ?? 0);
+  const totalEngagement = offer?.engagementPerShare ? offer.engagementPerShare * offer.shares : null;
+
+  return (
+    <>
+      <Modal
+        open={open}
+        onCancel={onClose}
+        footer={null}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div>Confirmation d'achat — {offer?.fund} ({offer?.part})</div>
+              <Tag color={isCall ? 'orange' : 'green'}>{isCall ? 'Fonds à appel' : 'Paiement direct'}</Tag>
+            </div>
+            <Button size="small" icon={<CodeOutlined />} onClick={() => setShowCode(true)}>Code</Button>
+          </div>
+        }
+        width={520}
+      >
+        {/* Sélecteur investisseur (distributeur uniquement) */}
+        {isDistributor && (
+          <Select
+            placeholder="Sélectionner un investisseur"
+            style={{ width: '100%' }}
+            value={investor}
+            onChange={setInvestor}
+            options={MOCK_INVESTORS}
+          />
+        )}
+
+        {/* Récapitulatif */}
+        <RecapRow label="Nombre de parts" value={offer?.shares} />
+        <RecapRow label="Prix de cession" value={formatEur(offer?.price)} />
+        <RecapRow label="Montant total" value={formatEur(totalToPay)} highlight />
+
+        {/* Engagement (fonds à appel) */}
+        {isCall && totalEngagement && (
+          <EngagementBox total={totalEngagement} exposure={totalToPay + totalEngagement} />
+        )}
+
+        <Button
+          type="primary"
+          disabled={isDistributor && !investor}
+          onClick={onClose}
+          style={{ width: '100%' }}
+        >
+          {isDistributor && investor
+            ? \`Confirmer l'achat pour \${investor.label}\`
+            : "Confirmer l'achat"}
+        </Button>
+      </Modal>
+
+      <Drawer open={showCode} onClose={() => setShowCode(false)} title="Code — BuyModal" width={640}>
+        <SyntaxHighlighter language="tsx" style={oneLight}>{BUY_MODAL_CODE}</SyntaxHighlighter>
+      </Drawer>
+    </>
+  );
+}
+`;
+
+export const DETAILS_DRAWER_CODE = `'use client';
+// Drawer de détail d'offre — accessible via URL ?modal=details&id={offerId}
+// Affiche le récapitulatif complet de l'offre avec CTA "Acheter ces parts".
+
+import { Drawer, Button, Divider, Tag } from 'antd';
+import { CodeOutlined } from '@ant-design/icons';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+
+interface Offer {
+  id: number;
+  fund: string;
+  part: string;
+  shares: number;
+  price: number;
+  validUntil: string;
+  fundType?: 'call' | 'direct';
+  navPerShare?: number;
+  calledPct?: number;
+  engagementPerShare?: number;
+  status?: 'available' | 'pending';
+}
+
+// Ouvrir : router.replace(\`\${pathname}?modal=details&id=\${offer.id}\`)
+// Fermer : router.replace(\`\${pathname}\`) (retirer modal + id)
+
+export function DetailsDrawer({ offer, open, onClose, onBuy }) {
+  const [showCode, setShowCode] = useState(false);
+
+  const isCall = offer?.fundType === 'call';
+  const totalEngagement = offer?.engagementPerShare
+    ? offer.engagementPerShare * offer.shares
+    : null;
+
+  return (
+    <>
+      <Drawer
+        open={open}
+        onClose={onClose}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div>{offer?.fund} — {offer?.part}</div>
+              <Tag color={isCall ? 'blue' : 'green'}>{isCall ? 'Fonds à appel' : 'Paiement direct'}</Tag>
+            </div>
+            <Button size="small" icon={<CodeOutlined />} onClick={() => setShowCode(true)}>Code</Button>
+          </div>
+        }
+        width={480}
+        footer={
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button style={{ flex: 1 }} onClick={onClose}>Fermer</Button>
+            <Button type="primary" style={{ flex: 1 }} disabled={offer?.status === 'pending'} onClick={() => { onClose(); onBuy(); }}>
+              Acheter ces parts
+            </Button>
+          </div>
+        }
+      >
+        {/* Image du fonds */}
+        {offer?.image && <img src={offer.image} alt={offer.fund} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8 }} />}
+
+        <Divider orientation="left">Informations sur l'offre</Divider>
+
+        <RecapRow label="Nombre de parts" value={offer?.shares} />
+        <RecapRow label="Valeur par part" value={formatEur(offer?.navPerShare)} highlight />
+
+        {/* Barre d'appel (fonds à appel) */}
+        {isCall && offer?.calledPct !== undefined && <CalledProgressBar pct={offer.calledPct} />}
+
+        <RecapRow label="Prix de cession" value={formatEur(offer?.price)} />
+
+        {/* Engagement (fonds à appel) */}
+        {isCall && totalEngagement && (
+          <RecapRow label="Engagement restant à reprendre" value={formatEur(totalEngagement)} warning />
+        )}
+
+        {isCall && totalEngagement && (
+          <EngagementWarning total={totalEngagement} />
+        )}
+      </Drawer>
+
+      <Drawer open={showCode} onClose={() => setShowCode(false)} title="Code — DetailsDrawer" width={640} zIndex={1100}>
+        <SyntaxHighlighter language="tsx" style={oneLight}>{DETAILS_DRAWER_CODE}</SyntaxHighlighter>
+      </Drawer>
+    </>
+  );
+}
+`;
+
 export const PERFORMANCE_CHART_CODE = `'use client';
 import { useMemo } from 'react';
 import { LinePath } from '@visx/shape';

@@ -1,11 +1,14 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message } from 'antd';
+import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { SELL_MODAL_CODE } from '@/lib/code-sources';
 
 interface Subscription {
   id: number;
@@ -45,6 +48,7 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
   const [salePrice, setSalePrice] = useState<number | null>(null);
   const [partsCount, setPartsCount] = useState<number | null>(null);
   const [ribFile, setRibFile] = useState<File | null>(null);
+  const [codeOpen, setCodeOpen] = useState(false);
 
   if (!subscription) return null;
 
@@ -71,6 +75,7 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
   }
 
   return (
+    <>
     <Modal
       open={open}
       onCancel={() => { onClose(); reset(); }}
@@ -80,15 +85,20 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
             Vente de parts - {subscription.fund}{subscription.part ? ` (${subscription.part})` : ''}
           </span>
-          <Button
-            type="text"
-            size="small"
-            icon={<LinkOutlined />}
-            onClick={onCopyLink}
-            style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}
-          >
-            Copier le lien
-          </Button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button type="text" size="small" icon={<CodeOutlined />} onClick={() => setCodeOpen(true)} style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}>
+              Code
+            </Button>
+            <Button
+              type="text"
+              size="small"
+              icon={<LinkOutlined />}
+              onClick={onCopyLink}
+              style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}
+            >
+              Copier le lien
+            </Button>
+          </div>
         </div>
       }
       width={640}
@@ -208,6 +218,13 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
         </div>
       </div>
     </Modal>
+
+    <Drawer open={codeOpen} onClose={() => setCodeOpen(false)} title="Code — SellModal" width={640} zIndex={1100}>
+      <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
+        {SELL_MODAL_CODE}
+      </SyntaxHighlighter>
+    </Drawer>
+    </>
   );
 }
 

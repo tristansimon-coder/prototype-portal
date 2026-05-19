@@ -1,12 +1,15 @@
 'use client';
 import { Suspense, useState } from 'react';
 import { Alert, Button, Drawer, Divider, Modal, Select, Tabs, Tag } from 'antd';
-import { useSearchParams } from 'next/navigation';
+import { CodeOutlined } from '@ant-design/icons';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SecondaryMarketCard } from '@/components/widgets/SecondaryMarketCard';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
 import { secondaryMarket } from '@/data/mock';
-import { SECONDARY_MARKET_CARD_CODE } from '@/lib/code-sources';
+import { SECONDARY_MARKET_CARD_CODE, BUY_MODAL_CODE, DETAILS_DRAWER_CODE } from '@/lib/code-sources';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 type Offer = typeof secondaryMarket[number];
 
@@ -23,6 +26,7 @@ function eur(v: number) {
 
 function BuyModal({ offer, open, onClose, isDistributor }: { offer: Offer | null; open: boolean; onClose: () => void; isDistributor: boolean }) {
   const [investor, setInvestor] = useState<string | null>(null);
+  const [codeOpen, setCodeOpen] = useState(false);
 
   if (!offer) return null;
 
@@ -46,20 +50,26 @@ function BuyModal({ offer, open, onClose, isDistributor }: { offer: Offer | null
   }
 
   return (
+    <>
     <Modal
       open={open}
       onCancel={() => { onClose(); setInvestor(null); }}
       footer={null}
       title={
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
-            Confirmation d&apos;achat — {offer.fund} ({offer.part})
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 32 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
+              Confirmation d&apos;achat — {offer.fund} ({offer.part})
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', fontWeight: 400, marginTop: 2 }}>
+              <Tag color={isCall ? 'orange' : 'green'} style={{ fontSize: 11 }}>
+                {isCall ? 'Fonds à appel' : 'Paiement direct'}
+              </Tag>
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', fontWeight: 400, marginTop: 2 }}>
-            <Tag color={isCall ? 'orange' : 'green'} style={{ fontSize: 11 }}>
-              {isCall ? 'Fonds à appel' : 'Paiement direct'}
-            </Tag>
-          </div>
+          <Button type="text" size="small" icon={<CodeOutlined />} onClick={() => setCodeOpen(true)} style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}>
+            Code
+          </Button>
         </div>
       }
       width={520}
@@ -133,10 +143,18 @@ function BuyModal({ offer, open, onClose, isDistributor }: { offer: Offer | null
         </div>
       </div>
     </Modal>
+
+    <Drawer open={codeOpen} onClose={() => setCodeOpen(false)} title="Code — BuyModal" width={640} zIndex={1100}>
+      <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
+        {BUY_MODAL_CODE}
+      </SyntaxHighlighter>
+    </Drawer>
+    </>
   );
 }
 
 function DetailsDrawer({ offer, open, onClose, onBuy }: { offer: Offer | null; open: boolean; onClose: () => void; onBuy: () => void }) {
+  const [codeOpen, setCodeOpen] = useState(false);
   if (!offer) return null;
 
   const isCall = offer.fundType === 'call';
@@ -157,15 +175,21 @@ function DetailsDrawer({ offer, open, onClose, onBuy }: { offer: Offer | null; o
   }
 
   return (
+    <>
     <Drawer
       open={open}
       onClose={onClose}
       title={
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>{offer.fund} — {offer.part}</div>
-          <Tag color={isCall ? 'blue' : 'green'} style={{ fontSize: 11, marginTop: 4 }}>
-            {isCall ? 'Fonds à appel' : 'Paiement direct'}
-          </Tag>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{offer.fund} — {offer.part}</div>
+            <Tag color={isCall ? 'blue' : 'green'} style={{ fontSize: 11, marginTop: 4 }}>
+              {isCall ? 'Fonds à appel' : 'Paiement direct'}
+            </Tag>
+          </div>
+          <Button type="text" size="small" icon={<CodeOutlined />} onClick={() => setCodeOpen(true)} style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}>
+            Code
+          </Button>
         </div>
       }
       width={480}
@@ -219,18 +243,45 @@ function DetailsDrawer({ offer, open, onClose, onBuy }: { offer: Offer | null; o
         </div>
       )}
     </Drawer>
+
+    <Drawer open={codeOpen} onClose={() => setCodeOpen(false)} title="Code — DetailsDrawer" width={640} zIndex={1100}>
+      <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
+        {DETAILS_DRAWER_CODE}
+      </SyntaxHighlighter>
+    </Drawer>
+    </>
   );
 }
 
 function SecondaryMarketInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const persona = searchParams.get('persona') ?? 'lp';
   const isDistributor = persona === 'distributor';
 
+  const modalType = searchParams.get('modal'); // 'buy' | 'details' | null
+  const modalId = searchParams.get('id') ? Number(searchParams.get('id')) : null;
+  const buyTarget = modalType === 'buy' && modalId ? (secondaryMarket.find(s => s.id === modalId) ?? null) : null;
+  const detailTarget = modalType === 'details' && modalId ? (secondaryMarket.find(s => s.id === modalId) ?? null) : null;
+
+  function openModal(type: 'buy' | 'details', offer: Offer) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('modal', type);
+    params.set('id', String(offer.id));
+    router.replace(`${pathname}?${params.toString()}`);
+  }
+
+  function closeModal() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('modal');
+    params.delete('id');
+    router.replace(`${pathname}?${params.toString()}`);
+  }
+
   const fundNames = Array.from(new Set(secondaryMarket.map(s => s.fund)));
   const [activeFund, setActiveFund] = useState(fundNames[0]);
-  const [buyTarget, setBuyTarget] = useState<Offer | null>(null);
-  const [detailTarget, setDetailTarget] = useState<Offer | null>(null);
 
   return (
     <div>
@@ -256,8 +307,8 @@ function SecondaryMarketInner() {
               <SecondaryMarketCard
                 key={offer.id}
                 {...offer}
-                onBuy={() => setBuyTarget(offer)}
-                onDetails={() => setDetailTarget(offer)}
+                onBuy={() => openModal('buy', offer)}
+                onDetails={() => openModal('details', offer)}
               />
             ))}
           </div>
@@ -267,14 +318,14 @@ function SecondaryMarketInner() {
       <DetailsDrawer
         offer={detailTarget}
         open={detailTarget !== null}
-        onClose={() => setDetailTarget(null)}
-        onBuy={() => setBuyTarget(detailTarget)}
+        onClose={closeModal}
+        onBuy={() => detailTarget && openModal('buy', detailTarget)}
       />
 
       <BuyModal
         offer={buyTarget}
         open={buyTarget !== null}
-        onClose={() => setBuyTarget(null)}
+        onClose={closeModal}
         isDistributor={isDistributor}
       />
     </div>
