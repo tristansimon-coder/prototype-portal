@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined, CheckCircleOutlined, SendOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -25,6 +25,7 @@ interface Subscription {
   navPerShare?: number;
   navDate?: string;
   shares?: number;
+  investorName?: string;
 }
 
 interface SubscriptionTableProps {
@@ -63,7 +64,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
   const effectivePrice = salePrice ?? nav ?? 0;
   const effectiveParts = partsCount ?? 1;
   const totalSale = effectivePrice * effectiveParts;
-  // Engagement transféré = proportion des parts vendues × engagement restant total
   const engagementTransferred = totalShares && totalShares > 0
     ? (remainingEngagement / totalShares) * effectiveParts
     : remainingEngagement;
@@ -106,7 +106,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 8 }}>
 
-        {/* Montant appelé et payé — fonds à appel uniquement */}
         {isCallFund && (
           <Field label="Montant appelé et payé">
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -120,7 +119,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           </Field>
         )}
 
-        {/* Valeur actuelle d'une part */}
         {nav && (
           <Field label={`Valeur actuelle d'une part ${formatEur(nav)}`}>
             <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>
@@ -129,7 +127,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           </Field>
         )}
 
-        {/* Prix de vente souhaité */}
         <Field label="Prix de vente souhaité (par part) :">
           {minPrice && maxPrice && (
             <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
@@ -148,7 +145,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           />
         </Field>
 
-        {/* Nombre de parts */}
         <Field label="Nombre de parts que vous souhaitez vendre :">
           <InputNumber
             style={{ width: '100%' }}
@@ -159,12 +155,10 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           />
         </Field>
 
-        {/* Date de validité */}
         <Field label="Date de fin de validité de l'offre :">
           <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="JJ/MM/AAAA" />
         </Field>
 
-        {/* RIB */}
         <Field label="RIB du vendeur :">
           <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
             Document bancaire pour la transmission des fonds suite à la cession (PDF, JPG…)
@@ -181,7 +175,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           </Upload>
         </Field>
 
-        {/* Avertissement engagement — fonds à appel avec engagement restant */}
         {isCallFund && engagementTransferred > 0 && (
           <div style={{ fontSize: 13, color: 'var(--ih-text-primary)' }}>
             ⚠ Attention : en vendant ces parts, l&apos;acheteur reprend aussi votre engagement futur de{' '}
@@ -194,7 +187,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           </div>
         )}
 
-        {/* Totaux */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>
             Montant total de la vente : {formatEur(totalSale)}
@@ -206,7 +198,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           )}
         </div>
 
-        {/* CTA */}
         <div style={{ borderTop: '1px solid var(--ih-border)', paddingTop: 16 }}>
           <Button
             type="primary"
@@ -349,6 +340,9 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const persona = searchParams.get('persona') ?? 'lp';
+  const isDistributor = persona === 'distributor';
+
   const modalType = searchParams.get('modal');
   const modalId = searchParams.get('id') ? Number(searchParams.get('id')) : null;
   const sellTarget = modalType === 'sell' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
@@ -369,7 +363,6 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
     router.replace(`${pathname}?${params.toString()}`);
   }
 
-  // keep backward compat aliases
   const openSell = (r: Subscription) => openModal('sell', r);
   const closeSell = closeModal;
 
@@ -395,6 +388,17 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
     distributed: filtered.reduce((s, d) => s + d.distributed, 0),
   }), [filtered]);
 
+  const investorColumn: ColumnsType<Subscription>[0] = {
+    title: 'Investisseur',
+    key: 'investorName',
+    sorter: (a, b) => (a.investorName ?? '').localeCompare(b.investorName ?? ''),
+    render: (_, record) => (
+      <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>
+        {record.investorName ?? '—'}
+      </div>
+    ),
+  };
+
   const columns: ColumnsType<Subscription> = [
     {
       title: 'Type',
@@ -408,6 +412,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         </div>
       ),
     },
+    ...(isDistributor ? [investorColumn] : []),
     {
       title: 'Fonds',
       key: 'fund',
@@ -468,6 +473,39 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
       align: 'right' as const,
       render: (_, record) => {
         const hasRedemptions = allRedemptions.some(r => r.subscriptionId === record.id);
+
+        if (isDistributor) {
+          const delegationItems: MenuProps['items'] = [
+            ...(['in_progress', 'study'].includes(record.status) ? [{
+              key: 'validate',
+              label: 'Consulter et valider',
+              icon: <CheckCircleOutlined />,
+              onClick: () => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`),
+            }] : []),
+            ...(['study', 'pre_validated'].includes(record.status) ? [{
+              key: 'send_sign',
+              label: 'Envoyer en signature',
+              icon: <SendOutlined />,
+            }] : []),
+            ...(['to_sign', 'pre_validated'].includes(record.status) ? [{
+              key: 'resend_sign',
+              label: 'Renvoyer le lien de signature',
+              icon: <SendOutlined />,
+            }] : []),
+            ...(record.status !== 'valid' ? [{
+              key: 'reopen',
+              label: 'Réouvrir',
+              icon: <ReloadOutlined />,
+            }] : []),
+            { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
+          ];
+          return (
+            <Dropdown menu={{ items: delegationItems }} trigger={['click']} placement="bottomRight">
+              <Button type="text" icon={<MoreOutlined />} size="small" />
+            </Dropdown>
+          );
+        }
+
         const validItems: MenuProps['items'] = [
           { key: 'sell', label: 'Vendre', icon: <ShoppingOutlined />, onClick: () => openSell(record) },
           { key: 'redeem', label: 'Rachat libre', icon: <RollbackOutlined />, onClick: () => openModal('redeem', record) },
@@ -488,9 +526,10 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
     },
   ];
 
+  const firstColSpan = isDistributor ? 4 : 3;
+
   return (
     <div>
-      {/* Filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <Select
           placeholder="Tous les fonds"
@@ -518,6 +557,10 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
             { value: 'to_sign', label: 'À envoyer en signature' },
             { value: 'in_progress', label: 'En cours' },
             { value: 'valid', label: 'Valide' },
+            ...(isDistributor ? [
+              { value: 'study', label: 'Étude du dossier' },
+              { value: 'pre_validated', label: 'Prévalidé' },
+            ] : []),
           ]}
         />
         <div style={{ marginLeft: 'auto' }}>
@@ -537,19 +580,19 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
           style={{ borderRadius: 12, overflow: 'hidden', background: '#fff' }}
           summary={() => (
             <Table.Summary.Row style={{ background: '#fff', fontWeight: 600 }}>
-              <Table.Summary.Cell index={0} colSpan={3}>
+              <Table.Summary.Cell index={0} colSpan={firstColSpan}>
                 <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>Total</span>
               </Table.Summary.Cell>
-              <Table.Summary.Cell index={3} align="right">
+              <Table.Summary.Cell index={firstColSpan} align="right">
                 <span style={{ fontWeight: 700 }}>{formatEur(totals.amount)}</span>
               </Table.Summary.Cell>
-              <Table.Summary.Cell index={4} align="right">
+              <Table.Summary.Cell index={firstColSpan + 1} align="right">
                 <span>{formatEur(totals.called)}</span>
               </Table.Summary.Cell>
-              <Table.Summary.Cell index={5} align="right">
+              <Table.Summary.Cell index={firstColSpan + 2} align="right">
                 <span>{formatEur(totals.distributed)}</span>
               </Table.Summary.Cell>
-              <Table.Summary.Cell index={6} colSpan={3} />
+              <Table.Summary.Cell index={firstColSpan + 3} colSpan={3} />
             </Table.Summary.Row>
           )}
         />

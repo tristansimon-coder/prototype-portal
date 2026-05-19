@@ -1,13 +1,19 @@
 'use client';
 import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { KpiCard } from '@/components/widgets/KpiCard';
 import { SubscriptionTable } from '@/components/widgets/SubscriptionTable';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
-import { subscriptions, portfolioKpis } from '@/data/mock';
+import { subscriptions, distributorSubscriptions, portfolioKpis } from '@/data/mock';
 import { KPI_CARD_CODE, SUBSCRIPTION_TABLE_CODE } from '@/lib/code-sources';
 
-export default function SubscriptionsPage() {
+function SubscriptionsContent() {
+  const searchParams = useSearchParams();
+  const persona = searchParams.get('persona') ?? 'lp';
+  const isDistributor = persona === 'distributor';
+  const tableData = isDistributor ? distributorSubscriptions : subscriptions;
+
   return (
     <div>
       <PageHeader title="Mes souscriptions" />
@@ -23,9 +29,17 @@ export default function SubscriptionsPage() {
 
       <WidgetWrapper title="SubscriptionTable" codeSource={SUBSCRIPTION_TABLE_CODE}>
         <div style={{ paddingTop: 40 }}>
-          <Suspense fallback={null}><SubscriptionTable data={subscriptions} /></Suspense>
+          <Suspense fallback={null}><SubscriptionTable data={tableData} /></Suspense>
         </div>
       </WidgetWrapper>
     </div>
+  );
+}
+
+export default function SubscriptionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SubscriptionsContent />
+    </Suspense>
   );
 }

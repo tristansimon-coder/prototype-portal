@@ -86,6 +86,52 @@ export const subscriptions = [
   { id: 5, fund: 'Flex II', part: 'A1', date: '09/07/2025', amount: 250000, called: 0, distributed: 0, valuation: null, status: 'in_progress', fundType: 'direct' as const },
 ];
 
+export const distributorSubscriptions = [
+  { id: 101, investorName: 'Marie Lambert', fund: 'Impact Growth II', part: 'Part A', date: '10/03/2025', amount: 50000, called: 0, distributed: 0, valuation: null, status: 'study', fundType: 'call' as const },
+  { id: 102, investorName: 'Pierre Dubois', fund: 'Fonds Licorne VI', part: 'Part C', date: '15/02/2025', amount: 150000, called: 0, distributed: 0, valuation: null, status: 'in_progress', fundType: 'call' as const },
+  { id: 103, investorName: 'Sophie Martin', fund: 'Flex II', part: 'A1', date: '01/04/2025', amount: 75000, called: 0, distributed: 0, valuation: null, status: 'to_sign', fundType: 'direct' as const },
+  { id: 104, investorName: 'Jean Moreau', fund: 'Impact Growth II', part: 'Part A', date: '20/01/2025', amount: 200000, called: 50000, distributed: 0, valuation: null, status: 'valid', fundType: 'call' as const, navPerShare: 1080, navDate: '30/04/2026', shares: 200 },
+  { id: 105, investorName: 'Claire Fontaine', fund: 'Flex II', part: null, date: '05/05/2025', amount: 30000, called: 0, distributed: 0, valuation: null, status: 'pre_validated', fundType: 'direct' as const },
+];
+
+export interface KycQuestion {
+  id: string;
+  label: string;
+  answer: string;
+}
+
+export interface KycSection {
+  title: string;
+  questions: KycQuestion[];
+}
+
+export const kycSections: KycSection[] = [
+  {
+    title: 'Identité',
+    questions: [
+      { id: 'prenom', label: 'Prénom*', answer: 'Marie' },
+      { id: 'nom', label: 'Nom*', answer: 'Lambert' },
+      { id: 'ifi', label: "Soumis à l'IFI*", answer: 'Non' },
+    ],
+  },
+  {
+    title: 'Situation patrimoniale',
+    questions: [
+      { id: 'revenus', label: 'Revenus annuels nets*', answer: '80 000 € - 150 000 €' },
+      { id: 'patrimoine', label: 'Patrimoine financier net*', answer: '500 000 € - 1 000 000 €' },
+      { id: 'immobilier', label: 'Part en immobilier*', answer: '40 %' },
+    ],
+  },
+  {
+    title: "Expérience d'investissement",
+    questions: [
+      { id: 'exp_alternative', label: 'Expérience en placements alternatifs*', answer: 'Plus de 5 ans' },
+      { id: 'profil_risque', label: 'Profil de risque*', answer: 'Dynamique' },
+      { id: 'horizon', label: 'Horizon de placement*', answer: '5 à 10 ans' },
+    ],
+  },
+];
+
 export const portfolioKpis = {
   totalEngagement: 300100,
   totalCalled: 10,
