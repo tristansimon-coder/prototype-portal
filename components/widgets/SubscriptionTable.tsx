@@ -16,6 +16,7 @@ interface Subscription {
   distributed: number;
   valuation: number | null;
   status: string;
+  fundType?: 'call' | 'direct';
   navPerShare?: number;
   navDate?: string;
   shares?: number;
@@ -27,7 +28,16 @@ interface SubscriptionTableProps {
 
 function formatEur(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)', marginBottom: 6 }}>{label}</div>
+      {children}
+    </div>
+  );
 }
 
 function SellModal({ subscription, open, onClose }: { subscription: Subscription | null; open: boolean; onClose: () => void }) {
@@ -41,17 +51,15 @@ function SellModal({ subscription, open, onClose }: { subscription: Subscription
   const totalShares = subscription.shares ?? null;
   const minPrice = nav ? Math.round(nav * 0.90 * 100) / 100 : null;
   const maxPrice = nav ? Math.round(nav * 1.15 * 100) / 100 : null;
-  const totalSale = salePrice && partsCount ? salePrice * partsCount : null;
+  const isCallFund = subscription.fundType === 'call';
+  const calledPct = subscription.amount > 0 ? Math.round((subscription.called / subscription.amount) * 100) : 0;
+  const remainingEngagement = subscription.amount - subscription.called;
+  const effectivePrice = salePrice ?? nav ?? 0;
+  const effectiveParts = partsCount ?? 1;
+  const totalSale = effectivePrice * effectiveParts;
+  const netAmount = Math.max(0, totalSale - remainingEngagement);
 
-  function handleSubmit() {
-    onClose();
-    setSalePrice(null);
-    setPartsCount(null);
-    setRibFile(null);
-  }
-
-  function handleCancel() {
-    onClose();
+  function reset() {
     setSalePrice(null);
     setPartsCount(null);
     setRibFile(null);
@@ -60,96 +68,77 @@ function SellModal({ subscription, open, onClose }: { subscription: Subscription
   return (
     <Modal
       open={open}
-      onCancel={handleCancel}
+      onCancel={() => { onClose(); reset(); }}
       footer={null}
       title={
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
-            Vente de parts — {subscription.fund}{subscription.part ? ` (${subscription.part})` : ''}
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--ih-text-secondary)', fontWeight: 400, marginTop: 2 }}>
-            Montant total souscrit : {formatEur(subscription.amount)}
-          </div>
-        </div>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
+          Vente de parts - {subscription.fund}{subscription.part ? ` (${subscription.part})` : ''}
+        </span>
       }
-      width={520}
-      styles={{ header: { paddingBottom: 12, borderBottom: '1px solid var(--ih-border)' } }}
+      width={640}
     >
-      <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 8 }}>
 
-        {/* NAV info */}
-        {nav && (
-          <div style={{ background: 'var(--ih-bg)', borderRadius: 8, padding: '12px 16px' }}>
-            <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 4 }}>
-              Valeur actuelle d&apos;une part
-              {subscription.navDate && (
-                <span style={{ marginLeft: 6, fontStyle: 'italic' }}>
-                  — Basée sur la dernière valorisation en date du {subscription.navDate}
-                </span>
-              )}
+        {/* Montant appelé et payé — fonds à appel uniquement */}
+        {isCallFund && (
+          <Field label="Montant appelé et payé">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1, height: 6, background: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ width: `${calledPct}%`, height: '100%', background: 'var(--ih-primary)', borderRadius: 3 }} />
+              </div>
+              <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)', whiteSpace: 'nowrap' }}>
+                {formatEur(subscription.called)} / {formatEur(subscription.amount)} ({calledPct}%)
+              </span>
             </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
-              {formatEur(nav)} <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ih-text-secondary)' }}>/ part</span>
-            </div>
-          </div>
+          </Field>
         )}
 
-        {/* Price per share */}
-        <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', display: 'block', marginBottom: 6 }}>
-            Prix de vente souhaité (par part)
-          </label>
+        {/* Valeur actuelle d'une part */}
+        {nav && (
+          <Field label={`Valeur actuelle d'une part ${formatEur(nav)}`}>
+            <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>
+              Basée sur la dernière valorisation en date du {subscription.navDate ?? '—'}
+            </div>
+          </Field>
+        )}
+
+        {/* Prix de vente souhaité */}
+        <Field label="Prix de vente souhaité (par part) :">
           {minPrice && maxPrice && (
             <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
-              Fourchette autorisée : entre {formatEur(minPrice)} et {formatEur(maxPrice)}
-              <span style={{ marginLeft: 4 }}>(-10% / +15% de la valeur de la part)</span>
+              Doit être compris entre <strong>-10,00%</strong> et <strong>+15,00%</strong> soit{' '}
+              <strong>{formatEur(minPrice)}</strong> et <strong>{formatEur(maxPrice)}</strong>
             </div>
           )}
           <InputNumber
             style={{ width: '100%' }}
             min={minPrice ?? 0}
             max={maxPrice ?? undefined}
-            value={salePrice}
+            value={salePrice ?? (nav ?? undefined)}
             onChange={setSalePrice}
-            formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
+            decimalSeparator=","
             addonAfter="€"
-            placeholder={nav ? `ex. ${nav}` : 'Prix par part'}
           />
-        </div>
+        </Field>
 
-        {/* Number of shares */}
-        <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', display: 'block', marginBottom: 6 }}>
-            Nombre de parts à vendre
-          </label>
-          {totalShares && (
-            <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
-              Maximum disponible : {totalShares.toLocaleString('fr-FR')} parts
-            </div>
-          )}
+        {/* Nombre de parts */}
+        <Field label="Nombre de parts que vous souhaitez vendre :">
           <InputNumber
             style={{ width: '100%' }}
             min={1}
             max={totalShares ?? undefined}
-            value={partsCount}
+            value={partsCount ?? 1}
             onChange={setPartsCount}
-            placeholder="Nombre de parts"
           />
-        </div>
+        </Field>
 
-        {/* Validity date */}
-        <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', display: 'block', marginBottom: 6 }}>
-            Date de fin de validité de l&apos;offre
-          </label>
+        {/* Date de validité */}
+        <Field label="Date de fin de validité de l'offre :">
           <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="JJ/MM/AAAA" />
-        </div>
+        </Field>
 
         {/* RIB */}
-        <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', display: 'block', marginBottom: 6 }}>
-            RIB du vendeur
-          </label>
+        <Field label="RIB du vendeur :">
           <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
             Document bancaire pour la transmission des fonds suite à la cession (PDF, JPG…)
           </div>
@@ -159,27 +148,39 @@ function SellModal({ subscription, open, onClose }: { subscription: Subscription
             onRemove={() => setRibFile(null)}
             accept=".pdf,.jpg,.jpeg,.png"
           >
-            <Button icon={<UploadOutlined />} style={{ width: '100%' }}>
+            <Button icon={<UploadOutlined />}>
               {ribFile ? ribFile.name : 'Déposer votre RIB'}
             </Button>
           </Upload>
-        </div>
+        </Field>
 
-        {/* Calculated total */}
-        {totalSale !== null && (
-          <div style={{ background: '#EEF9E6', borderRadius: 8, padding: '12px 16px', border: '1px solid #c6efb1' }}>
-            <div style={{ fontSize: 12, color: '#4a7c2e', marginBottom: 4 }}>Montant total estimé de la vente</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ih-text-primary)' }}>{formatEur(totalSale)}</div>
+        {/* Avertissement engagement — fonds à appel avec engagement restant */}
+        {isCallFund && remainingEngagement > 0 && (
+          <div style={{ fontSize: 13, color: 'var(--ih-text-primary)' }}>
+            ⚠ Attention : en vendant ces parts, l&apos;acheteur reprend aussi votre engagement futur de{' '}
+            <strong>{formatEur(remainingEngagement)}</strong>
           </div>
         )}
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4, borderTop: '1px solid var(--ih-border)' }}>
-          <Button onClick={handleCancel}>Annuler</Button>
+        {/* Totaux */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>
+            Montant total de la vente : {formatEur(totalSale)}
+          </div>
+          {isCallFund && (
+            <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>
+              Montant net estimé après transfert d&apos;engagement : {formatEur(netAmount)}
+            </div>
+          )}
+        </div>
+
+        {/* CTA */}
+        <div style={{ borderTop: '1px solid var(--ih-border)', paddingTop: 16 }}>
           <Button
             type="primary"
-            onClick={handleSubmit}
-            disabled={!salePrice || !partsCount || !ribFile}
+            style={{ width: '100%' }}
+            disabled={!ribFile}
+            onClick={() => { onClose(); reset(); }}
           >
             Mettre en vente
           </Button>
