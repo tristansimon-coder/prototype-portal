@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, EllipsisOutlined, ShoppingOutlined, UploadOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 
@@ -281,6 +281,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
       title: 'Actions',
       key: 'actions',
       width: 60,
+      align: 'right' as const,
       render: (_, record) => {
         const validItems: MenuProps['items'] = [
           { key: 'sell', label: 'Vendre', icon: <ShoppingOutlined />, onClick: () => setSellTarget(record) },
@@ -293,7 +294,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         ];
         return (
           <Dropdown menu={{ items: record.status === 'valid' ? validItems : otherItems }} trigger={['click']} placement="bottomRight">
-            <Button type="text" icon={<EllipsisOutlined />} size="small" />
+            <Button type="text" icon={<MoreOutlined />} size="small" />
           </Dropdown>
         );
       },
