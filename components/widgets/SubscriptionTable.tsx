@@ -418,7 +418,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         <div>
           <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>{record.fund}</div>
           {record.part && <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>{record.part}</div>}
-          {record.status === 'study' && (
+          {isDistributor && record.status === 'study' && (
             <span
               onClick={() => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`)}
               style={{
@@ -510,7 +510,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         ];
         const items = record.status === 'valid'
           ? validItems
-          : record.status === 'study'
+          : (isDistributor && record.status === 'study')
             ? studyItems
             : otherItems;
         return (
@@ -576,7 +576,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
           size="middle"
           style={{ borderRadius: 12, overflow: 'hidden', background: '#fff' }}
           onRow={(record) => ({
-            style: record.status === 'study'
+            style: isDistributor && record.status === 'study'
               ? { background: 'rgba(251,191,36,0.05)', borderLeft: '3px solid #f59e0b' }
               : {},
           })}
