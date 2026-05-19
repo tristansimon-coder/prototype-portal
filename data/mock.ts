@@ -34,8 +34,8 @@ export const funds = [
 export const subscriptions = [
   { id: 1, fund: 'Fonds Licorne VI', part: 'Part A', date: '15/01/2025', amount: 100000, called: 0, distributed: 0, valuation: null, status: 'to_sign' },
   { id: 2, fund: 'Fonds Licorne VI', part: 'Part C', date: '15/01/2025', amount: 100, called: 0, distributed: 0, valuation: null, status: 'in_progress' },
-  { id: 3, fund: 'Fonds Licorne VI', part: 'Part A', date: '15/01/2025', amount: 300000, called: 0, distributed: 0, valuation: null, status: 'valid' },
-  { id: 4, fund: 'Flex II', part: null, date: '03/02/2025', amount: 100, called: 9.90, distributed: 0, valuation: null, status: 'valid' },
+  { id: 3, fund: 'Fonds Licorne VI', part: 'Part A', date: '15/01/2025', amount: 300000, called: 0, distributed: 0, valuation: null, status: 'valid', navPerShare: 1080, navDate: '30/04/2026', shares: 300 },
+  { id: 4, fund: 'Flex II', part: null, date: '03/02/2025', amount: 100, called: 9.90, distributed: 0, valuation: null, status: 'valid', navPerShare: 105.5, navDate: '30/04/2026', shares: 1 },
   { id: 5, fund: 'Flex II', part: 'A1', date: '09/07/2025', amount: 250000, called: 0, distributed: 0, valuation: null, status: 'in_progress' },
 ];
 

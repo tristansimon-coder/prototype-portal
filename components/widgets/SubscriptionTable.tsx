@@ -1,7 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Table, Select, Space, Button, Tooltip, Typography, Tag, ConfigProvider } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, Input, DatePicker, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, EllipsisOutlined, ShoppingOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 
@@ -15,21 +16,179 @@ interface Subscription {
   distributed: number;
   valuation: number | null;
   status: string;
+  navPerShare?: number;
+  navDate?: string;
+  shares?: number;
 }
 
 interface SubscriptionTableProps {
   data: Subscription[];
 }
 
-function formatEur(value: number | null): string {
+function formatEur(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
+}
+
+function SellModal({ subscription, open, onClose }: { subscription: Subscription | null; open: boolean; onClose: () => void }) {
+  const [salePrice, setSalePrice] = useState<number | null>(null);
+  const [partsCount, setPartsCount] = useState<number | null>(null);
+  const [rib, setRib] = useState('');
+
+  if (!subscription) return null;
+
+  const nav = subscription.navPerShare ?? null;
+  const totalShares = subscription.shares ?? null;
+  const minPrice = nav ? Math.round(nav * 0.90 * 100) / 100 : null;
+  const maxPrice = nav ? Math.round(nav * 1.15 * 100) / 100 : null;
+  const totalSale = salePrice && partsCount ? salePrice * partsCount : null;
+
+  function handleSubmit() {
+    onClose();
+    setSalePrice(null);
+    setPartsCount(null);
+    setRib('');
+  }
+
+  function handleCancel() {
+    onClose();
+    setSalePrice(null);
+    setPartsCount(null);
+    setRib('');
+  }
+
+  return (
+    <Modal
+      open={open}
+      onCancel={handleCancel}
+      footer={null}
+      title={
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
+            Vente de parts — {subscription.fund}{subscription.part ? ` (${subscription.part})` : ''}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ih-text-secondary)', fontWeight: 400, marginTop: 2 }}>
+            Montant total souscrit : {formatEur(subscription.amount)}
+          </div>
+        </div>
+      }
+      width={520}
+      styles={{ header: { paddingBottom: 12, borderBottom: '1px solid var(--ih-border)' } }}
+    >
+      <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {/* NAV info */}
+        {nav && (
+          <div style={{ background: 'var(--ih-bg)', borderRadius: 8, padding: '12px 16px' }}>
+            <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 4 }}>
+              Valeur actuelle d&apos;une part
+              {subscription.navDate && (
+                <span style={{ marginLeft: 6, fontStyle: 'italic' }}>
+                  — Basée sur la dernière valorisation en date du {subscription.navDate}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
+              {formatEur(nav)} <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ih-text-secondary)' }}>/ part</span>
+            </div>
+          </div>
+        )}
+
+        {/* Price per share */}
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', display: 'block', marginBottom: 6 }}>
+            Prix de vente souhaité (par part)
+          </label>
+          {minPrice && maxPrice && (
+            <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
+              Fourchette autorisée : entre {formatEur(minPrice)} et {formatEur(maxPrice)}
+              <span style={{ marginLeft: 4 }}>(-10% / +15% de la valeur de la part)</span>
+            </div>
+          )}
+          <InputNumber
+            style={{ width: '100%' }}
+            min={minPrice ?? 0}
+            max={maxPrice ?? undefined}
+            value={salePrice}
+            onChange={setSalePrice}
+            formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
+            addonAfter="€"
+            placeholder={nav ? `ex. ${nav}` : 'Prix par part'}
+          />
+        </div>
+
+        {/* Number of shares */}
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', display: 'block', marginBottom: 6 }}>
+            Nombre de parts à vendre
+          </label>
+          {totalShares && (
+            <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
+              Maximum disponible : {totalShares.toLocaleString('fr-FR')} parts
+            </div>
+          )}
+          <InputNumber
+            style={{ width: '100%' }}
+            min={1}
+            max={totalShares ?? undefined}
+            value={partsCount}
+            onChange={setPartsCount}
+            placeholder="Nombre de parts"
+          />
+        </div>
+
+        {/* Validity date */}
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', display: 'block', marginBottom: 6 }}>
+            Date de fin de validité de l&apos;offre
+          </label>
+          <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="JJ/MM/AAAA" />
+        </div>
+
+        {/* RIB */}
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', display: 'block', marginBottom: 6 }}>
+            RIB du vendeur
+          </label>
+          <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
+            Coordonnées bancaires pour la transmission des fonds suite à la cession
+          </div>
+          <Input
+            value={rib}
+            onChange={e => setRib(e.target.value)}
+            placeholder="IBAN / RIB du compte bénéficiaire"
+          />
+        </div>
+
+        {/* Calculated total */}
+        {totalSale !== null && (
+          <div style={{ background: '#EEF9E6', borderRadius: 8, padding: '12px 16px', border: '1px solid #c6efb1' }}>
+            <div style={{ fontSize: 12, color: '#4a7c2e', marginBottom: 4 }}>Montant total estimé de la vente</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ih-text-primary)' }}>{formatEur(totalSale)}</div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4, borderTop: '1px solid var(--ih-border)' }}>
+          <Button onClick={handleCancel}>Annuler</Button>
+          <Button
+            type="primary"
+            onClick={handleSubmit}
+            disabled={!salePrice || !partsCount || !rib}
+          >
+            Mettre en vente
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
 }
 
 export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const [fundFilter, setFundFilter] = useState<string | undefined>(undefined);
   const [partFilter, setPartFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [sellTarget, setSellTarget] = useState<Subscription | null>(null);
 
   const funds = useMemo(() => Array.from(new Set(data.map(d => d.fund))), [data]);
   const parts = useMemo(() => Array.from(new Set(data.map(d => d.part).filter(Boolean) as string[])), [data]);
@@ -116,27 +275,21 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
     {
       title: 'Actions',
       key: 'actions',
-      width: 100,
+      width: 60,
       render: (_, record) => {
-        if (record.status === 'valid') {
-          return (
-            <Tooltip title="Plus d'actions">
-              <Button type="text" icon={<EllipsisOutlined />} size="small" />
-            </Tooltip>
-          );
-        }
+        const validItems: MenuProps['items'] = [
+          { key: 'sell', label: 'Vendre', icon: <ShoppingOutlined />, onClick: () => setSellTarget(record) },
+          { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
+        ];
+        const otherItems: MenuProps['items'] = [
+          { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
+          { key: 'edit', label: 'Modifier', icon: <EditOutlined /> },
+          { key: 'delete', label: 'Supprimer', icon: <DeleteOutlined />, danger: true },
+        ];
         return (
-          <Space size={4}>
-            <Tooltip title="Voir">
-              <Button type="text" icon={<EyeOutlined />} size="small" />
-            </Tooltip>
-            <Tooltip title="Modifier">
-              <Button type="text" icon={<EditOutlined />} size="small" />
-            </Tooltip>
-            <Tooltip title="Supprimer">
-              <Button type="text" icon={<DeleteOutlined />} size="small" danger />
-            </Tooltip>
-          </Space>
+          <Dropdown menu={{ items: record.status === 'valid' ? validItems : otherItems }} trigger={['click']} placement="bottomRight">
+            <Button type="text" icon={<EllipsisOutlined />} size="small" />
+          </Dropdown>
         );
       },
     },
@@ -208,6 +361,12 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
           )}
         />
       </ConfigProvider>
+
+      <SellModal
+        subscription={sellTarget}
+        open={sellTarget !== null}
+        onClose={() => setSellTarget(null)}
+      />
     </div>
   );
 }
