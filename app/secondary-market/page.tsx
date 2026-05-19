@@ -1,6 +1,6 @@
 'use client';
 import { Suspense, useState } from 'react';
-import { Alert, Button, Modal, Select, Tabs, Tag } from 'antd';
+import { Alert, Button, Drawer, Divider, Modal, Select, Tabs, Tag } from 'antd';
 import { useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SecondaryMarketCard } from '@/components/widgets/SecondaryMarketCard';
@@ -136,6 +136,92 @@ function BuyModal({ offer, open, onClose, isDistributor }: { offer: Offer | null
   );
 }
 
+function DetailsDrawer({ offer, open, onClose, onBuy }: { offer: Offer | null; open: boolean; onClose: () => void; onBuy: () => void }) {
+  if (!offer) return null;
+
+  const isCall = offer.fundType === 'call';
+  const totalValue = offer.navPerShare ? offer.navPerShare * offer.shares : null;
+  const totalToPay = offer.price * offer.shares;
+  const totalEngagement = (offer as { engagementPerShare?: number }).engagementPerShare
+    ? (offer as { engagementPerShare: number }).engagementPerShare * offer.shares
+    : null;
+  const totalExposure = totalEngagement ? totalToPay + totalEngagement : null;
+
+  function Row({ label, value, highlight, warning }: { label: string; value: string; highlight?: boolean; warning?: boolean }) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--ih-border)' }}>
+        <span style={{ color: warning ? '#d97706' : 'var(--ih-text-secondary)', fontSize: 13 }}>{label}</span>
+        <span style={{ fontWeight: highlight || warning ? 700 : 600, fontSize: highlight ? 15 : 14, color: warning ? '#d97706' : 'var(--ih-text-primary)' }}>{value}</span>
+      </div>
+    );
+  }
+
+  return (
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>{offer.fund} — {offer.part}</div>
+          <Tag color={isCall ? 'blue' : 'green'} style={{ fontSize: 11, marginTop: 4 }}>
+            {isCall ? 'Fonds à appel' : 'Paiement direct'}
+          </Tag>
+        </div>
+      }
+      width={480}
+      footer={
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button style={{ flex: 1 }} onClick={onClose}>Fermer</Button>
+          <Button type="primary" style={{ flex: 1 }} disabled={offer.status === 'pending'} onClick={() => { onClose(); onBuy(); }}>
+            {offer.status === 'pending' ? 'Achat en cours' : 'Acheter ces parts'}
+          </Button>
+        </div>
+      }
+    >
+      {offer.image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={offer.image} alt={offer.fund} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 20 }} />
+      )}
+
+      <Divider orientation="left" style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>Informations sur l&apos;offre</Divider>
+
+      <Row label="Nombre de parts" value={offer.shares.toLocaleString('fr-FR')} />
+      {offer.navPerShare && (
+        <Row label={`Valeur par part${offer.navDate ? ` (${offer.navDate})` : ''}`} value={eur(offer.navPerShare)} highlight />
+      )}
+      {totalValue && <Row label="Valeur totale à date" value={eur(totalValue)} highlight />}
+
+      {isCall && (offer as { calledPct?: number }).calledPct !== undefined && (
+        <div style={{ padding: '8px 0', borderBottom: '1px solid var(--ih-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ color: 'var(--ih-text-secondary)', fontSize: 13 }}>Capital appelé</span>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>{(offer as { calledPct: number }).calledPct}%</span>
+          </div>
+          <div style={{ height: 6, background: '#E5E7EB', borderRadius: 3 }}>
+            <div style={{ width: `${(offer as { calledPct: number }).calledPct}%`, height: '100%', background: 'var(--ih-primary)', borderRadius: 3 }} />
+          </div>
+        </div>
+      )}
+
+      <Row label="Prix par part (cession)" value={eur(offer.price)} />
+      <Row label="Montant total à payer" value={eur(totalToPay)} highlight />
+      {isCall && totalEngagement !== null && (
+        <Row label="Engagement restant à reprendre" value={eur(totalEngagement)} warning />
+      )}
+      {isCall && totalExposure !== null && (
+        <Row label="Exposition économique totale" value={eur(totalExposure)} />
+      )}
+      <Row label="Offre valable jusqu'au" value={offer.validUntil} />
+
+      {isCall && totalEngagement !== null && (
+        <div style={{ marginTop: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
+          ⚠ En achetant ces parts, vous reprenez l&apos;engagement non appelé du vendeur. Des appels de fonds futurs pourront être émis jusqu&apos;à hauteur de {eur(totalEngagement)}.
+        </div>
+      )}
+    </Drawer>
+  );
+}
+
 function SecondaryMarketInner() {
   const searchParams = useSearchParams();
   const persona = searchParams.get('persona') ?? 'lp';
@@ -144,6 +230,7 @@ function SecondaryMarketInner() {
   const fundNames = Array.from(new Set(secondaryMarket.map(s => s.fund)));
   const [activeFund, setActiveFund] = useState(fundNames[0]);
   const [buyTarget, setBuyTarget] = useState<Offer | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Offer | null>(null);
 
   return (
     <div>
@@ -170,11 +257,19 @@ function SecondaryMarketInner() {
                 key={offer.id}
                 {...offer}
                 onBuy={() => setBuyTarget(offer)}
+                onDetails={() => setDetailTarget(offer)}
               />
             ))}
           </div>
         </div>
       </WidgetWrapper>
+
+      <DetailsDrawer
+        offer={detailTarget}
+        open={detailTarget !== null}
+        onClose={() => setDetailTarget(null)}
+        onBuy={() => setBuyTarget(detailTarget)}
+      />
 
       <BuyModal
         offer={buyTarget}

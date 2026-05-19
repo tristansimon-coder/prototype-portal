@@ -17,6 +17,7 @@ interface SecondaryMarketCardProps {
   calledPct?: number;
   engagementPerShare?: number;
   onBuy?: () => void;
+  onDetails?: () => void;
 }
 
 function eur(v: number) {
@@ -32,7 +33,7 @@ function Row({ label, value, highlight, warning }: { label: string; value: strin
   );
 }
 
-export function SecondaryMarketCard({ fund, part, shares, price, validUntil, image, navPerShare, navDate, status = 'available', pendingSince, fundType = 'direct', calledPct, engagementPerShare, onBuy }: SecondaryMarketCardProps) {
+export function SecondaryMarketCard({ fund, part, shares, price, validUntil, image, navPerShare, navDate, status = 'available', pendingSince, fundType = 'direct', calledPct, engagementPerShare, onBuy, onDetails }: SecondaryMarketCardProps) {
   const totalValue = navPerShare ? navPerShare * shares : null;
   const totalToPay = price * shares;
   const totalEngagement = engagementPerShare ? engagementPerShare * shares : null;
@@ -128,13 +129,13 @@ export function SecondaryMarketCard({ fund, part, shares, price, validUntil, ima
       {/* Avertissement engagement */}
       {isCall && totalEngagement !== null && (
         <div style={{ margin: '8px 20px 0', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 12, color: '#92400e' }}>
-          ⚠ En achetant ces parts, vous reprenez {eur(engagementPerShare!)} d&apos;engagement futur par part.
+          ⚠ En achetant ces parts, vous reprenez l&apos;engagement non appelé du vendeur. Des appels de fonds futurs pourront être émis jusqu&apos;à hauteur de {eur(totalEngagement)}.
         </div>
       )}
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, padding: '16px 20px' }}>
-        <Button style={{ flex: 1 }} disabled={isPending}>Détails</Button>
+        <Button style={{ flex: 1 }} disabled={isPending} onClick={onDetails}>Détails</Button>
         <Button type="primary" style={{ flex: 1 }} disabled={isPending} onClick={onBuy}>
           {isPending ? 'Achat en cours' : 'Acheter'}
         </Button>
