@@ -11,6 +11,8 @@ interface SecondaryMarketCardProps {
   image?: string | null;
   navPerShare?: number;
   navDate?: string;
+  status?: 'available' | 'pending';
+  pendingSince?: string;
 }
 
 function eur(v: number) {
@@ -26,28 +28,42 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
   );
 }
 
-export function SecondaryMarketCard({ fund, part, shares, price, validUntil, image, navPerShare, navDate }: SecondaryMarketCardProps) {
+export function SecondaryMarketCard({ fund, part, shares, price, validUntil, image, navPerShare, navDate, status = 'available', pendingSince }: SecondaryMarketCardProps) {
   const totalValue = navPerShare ? navPerShare * shares : null;
   const totalToPay = price * shares;
+  const isPending = status === 'pending';
 
   return (
     <div style={{
-      background: 'var(--ih-bg-card)',
-      border: '1px solid var(--ih-border)',
+      background: isPending ? '#F3F4F6' : 'var(--ih-bg-card)',
+      border: `1px solid ${isPending ? '#D1D5DB' : 'var(--ih-border)'}`,
       borderRadius: 12,
       overflow: 'hidden',
       width: 360,
       display: 'flex',
       flexDirection: 'column',
+      opacity: isPending ? 0.85 : 1,
+      position: 'relative',
     }}>
       {/* Fund photo */}
       <div style={{ height: 140, background: '#E5E7EB', position: 'relative', flexShrink: 0 }}>
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt={fund} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={image} alt={fund} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isPending ? 'grayscale(60%)' : 'none' }} />
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg, #0D3D56, #1A5C7A)' }}>
             <PictureOutlined style={{ fontSize: 36, color: 'rgba(255,255,255,0.4)' }} />
+          </div>
+        )}
+        {isPending && (
+          <div style={{
+            position: 'absolute', bottom: 10, left: 10,
+            background: 'rgba(0,0,0,0.6)', color: 'white',
+            fontSize: 12, fontWeight: 600, padding: '4px 10px',
+            borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#faad14', display: 'inline-block' }} />
+            Achat en cours{pendingSince ? ` · depuis le ${pendingSince}` : ''}
           </div>
         )}
       </div>
@@ -70,8 +86,10 @@ export function SecondaryMarketCard({ fund, part, shares, price, validUntil, ima
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, padding: '16px 20px' }}>
-        <Button style={{ flex: 1 }}>Détails</Button>
-        <Button type="primary" style={{ flex: 1 }}>Acheter</Button>
+        <Button style={{ flex: 1 }} disabled={isPending}>Détails</Button>
+        <Button type="primary" style={{ flex: 1 }} disabled={isPending}>
+          {isPending ? 'Achat en cours' : 'Acheter'}
+        </Button>
       </div>
     </div>
   );
