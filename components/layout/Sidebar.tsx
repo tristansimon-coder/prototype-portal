@@ -6,8 +6,7 @@ import { SearchOutlined } from '@ant-design/icons';
 
 const PERSONAS = [
   { label: 'LP', value: 'lp' },
-  { label: 'GP', value: 'gp' },
-  { label: 'Distrib.', value: 'distributor' },
+  { label: 'Distributeur', value: 'distributor' },
 ];
 
 const navItems = [
