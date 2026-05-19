@@ -1,6 +1,8 @@
 'use client';
 import { Button, Card, Tag } from 'antd';
 import { CalendarOutlined, DownloadOutlined, PictureOutlined } from '@ant-design/icons';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface FundCardProps {
   id: number;
@@ -11,7 +13,10 @@ interface FundCardProps {
   docs?: string[];
 }
 
-export function FundCard({ name, closeDate, image, description, docs }: FundCardProps) {
+export function FundCard({ id, name, closeDate, image, description, docs }: FundCardProps) {
+  const searchParams = useSearchParams();
+  const persona = searchParams.get('persona') ?? 'lp';
+  const detailHref = `/funds/${id}?persona=${persona}`;
   return (
     <Card
       style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--ih-border)', height: '100%', display: 'flex', flexDirection: 'column' }}
@@ -58,21 +63,23 @@ export function FundCard({ name, closeDate, image, description, docs }: FundCard
       </div>
 
       {/* CTA — full-width bar */}
-      <div
-        style={{
-          background: 'var(--ih-primary)',
-          color: 'white',
-          textAlign: 'right',
-          padding: '12px 20px',
-          fontWeight: 600,
-          fontSize: 14,
-          cursor: 'pointer',
-          borderRadius: '0 0 12px 12px',
-          userSelect: 'none',
-        }}
-      >
-        Voir plus &gt;
-      </div>
+      <Link href={detailHref} style={{ textDecoration: 'none' }}>
+        <div
+          style={{
+            background: 'var(--ih-primary)',
+            color: 'white',
+            textAlign: 'right',
+            padding: '12px 20px',
+            fontWeight: 600,
+            fontSize: 14,
+            cursor: 'pointer',
+            borderRadius: '0 0 12px 12px',
+            userSelect: 'none',
+          }}
+        >
+          Voir plus &gt;
+        </div>
+      </Link>
     </Card>
   );
 }

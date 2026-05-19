@@ -8,7 +8,7 @@ import {
   UserOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, EditOutlined,
   ArrowUpOutlined, SearchOutlined, PlusOutlined, BellOutlined,
 } from '@ant-design/icons';
-import { useState, type ReactNode } from 'react';
+import { useState, Suspense, type ReactNode } from 'react';
 import { KpiCard } from '@/components/widgets/KpiCard';
 import { FundCard } from '@/components/widgets/FundCard';
 import { SecondaryMarketCard } from '@/components/widgets/SecondaryMarketCard';
@@ -219,7 +219,7 @@ export default function DesignSystemPage() {
   summary={() => <Table.Summary.Row>...</Table.Summary.Row>}
 />`}>
             <div style={{ paddingTop: 40 }}>
-              <SubscriptionTable data={subscriptions} />
+              <Suspense fallback={null}><SubscriptionTable data={subscriptions} /></Suspense>
             </div>
           </WidgetWrapper>
 

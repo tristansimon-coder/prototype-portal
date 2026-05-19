@@ -16,6 +16,7 @@ interface SecondaryMarketCardProps {
   fundType?: 'call' | 'direct';
   calledPct?: number;
   engagementPerShare?: number;
+  onBuy?: () => void;
 }
 
 function eur(v: number) {
@@ -31,7 +32,7 @@ function Row({ label, value, highlight, warning }: { label: string; value: strin
   );
 }
 
-export function SecondaryMarketCard({ fund, part, shares, price, validUntil, image, navPerShare, navDate, status = 'available', pendingSince, fundType = 'direct', calledPct, engagementPerShare }: SecondaryMarketCardProps) {
+export function SecondaryMarketCard({ fund, part, shares, price, validUntil, image, navPerShare, navDate, status = 'available', pendingSince, fundType = 'direct', calledPct, engagementPerShare, onBuy }: SecondaryMarketCardProps) {
   const totalValue = navPerShare ? navPerShare * shares : null;
   const totalToPay = price * shares;
   const totalEngagement = engagementPerShare ? engagementPerShare * shares : null;
@@ -134,7 +135,7 @@ export function SecondaryMarketCard({ fund, part, shares, price, validUntil, ima
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, padding: '16px 20px' }}>
         <Button style={{ flex: 1 }} disabled={isPending}>Détails</Button>
-        <Button type="primary" style={{ flex: 1 }} disabled={isPending}>
+        <Button type="primary" style={{ flex: 1 }} disabled={isPending} onClick={onBuy}>
           {isPending ? 'Achat en cours' : 'Acheter'}
         </Button>
       </div>

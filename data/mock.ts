@@ -4,10 +4,21 @@ export const funds = [
     name: 'Impact Growth II',
     closeDate: '25/02/2029',
     image: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80',
+    fundType: 'call' as const,
     description: [
       'Financement early-stage pour startups innovantes',
       "Accompagnement stratégique et accès à un réseau d'experts",
       'Focus sur des modèles scalables et à fort potentiel',
+    ],
+    about: [
+      'Seed to Series A uniquement : tickets de 500k€ à 5M€ dans les meilleures startups deep-tech & B2B SaaS européennes.',
+      'Thèse climate-positive : 100% des sociétés en portefeuille doivent démontrer un impact CO₂ net négatif sous 5 ans.',
+      "Club des ex-fondateurs : 40 entrepreneurs à succès co-investissent et accompagnent le portefeuille.",
+    ],
+    longDescription: "Impact Growth II (vintage 2025, cible 150M€) s'appuie sur le succès du premier véhicule en affinant la thèse : seules les entreprises technologiques capables de décarboner l'industrie ou de réinventer les infrastructures logicielles B2B passent le filtre de sélection. Le fonds mise sur des prises de participation minoritaires (10–30%) avant Series B, avec un budget réservé pour suivre les tours ultérieurs. La SG s'appuie sur un conseil scientifique de 12 experts climat pour valider chaque investissement.",
+    shareClasses: [
+      { id: 'A', label: 'Part A', shareValue: 10000, minimumSubscription: 100000, engagementPerShare: 4500 },
+      { id: 'B', label: 'Part B', shareValue: 25000, minimumSubscription: 250000, engagementPerShare: 11000 },
     ],
     docs: ['One Pager Venture II', 'Deck Venture II'],
   },
@@ -16,7 +27,18 @@ export const funds = [
     name: 'Flex II',
     closeDate: '02/12/2026',
     image: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80',
+    fundType: 'direct' as const,
     description: ["Capital pour accélérer l'expansion et structurer la croissance"],
+    about: [
+      "Stratégie flexible combinant dette privée et equity selon les opportunités de marché.",
+      "Cible des PME en phase de croissance avec EBITDA positif et besoin de financement structuré.",
+      "Horizon d'investissement court (3–5 ans) avec distributions régulières.",
+    ],
+    longDescription: "Flex II est un fonds à paiement direct dont l'objectif est de fournir des solutions de financement souples à des PME européennes en croissance. Contrairement aux fonds à appel classiques, l'investissement est libéré intégralement à la souscription, ce qui simplifie le suivi de trésorerie pour les investisseurs.",
+    shareClasses: [
+      { id: 'A', label: 'Part A', shareValue: 1000, minimumSubscription: 10000 },
+      { id: 'B', label: 'Part B', shareValue: 5000, minimumSubscription: 50000 },
+    ],
     docs: [],
   },
   {
@@ -24,11 +46,17 @@ export const funds = [
     name: 'Venture I',
     closeDate: undefined,
     image: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80',
+    fundType: 'call' as const,
     description: ['Solutions hybrides entre capital-développement et dette privée'],
+    about: ['Approche hybride entre capital-développement et dette privée.', 'Portefeuille diversifié de 15 à 20 participations.'],
+    longDescription: "Venture I est le fonds historique d'InvestHub, clôturé en 2022. Le portefeuille est en phase de gestion active.",
+    shareClasses: [
+      { id: 'A', label: 'Part A', shareValue: 5000, minimumSubscription: 50000, engagementPerShare: 2000 },
+    ],
     docs: [],
   },
-  { id: 4, name: 'Fonds A', closeDate: undefined, image: null, description: [] },
-  { id: 5, name: 'Fonds B', closeDate: undefined, image: null, description: [] },
+  { id: 4, name: 'Fonds A', closeDate: undefined, image: null, fundType: 'direct' as const, description: [], about: [], longDescription: '', shareClasses: [{ id: 'A', label: 'Part A', shareValue: 1000, minimumSubscription: 5000 }], docs: [] },
+  { id: 5, name: 'Fonds B', closeDate: undefined, image: null, fundType: 'call' as const, description: [], about: [], longDescription: '', shareClasses: [{ id: 'A', label: 'Part A', shareValue: 2000, minimumSubscription: 20000, engagementPerShare: 800 }], docs: [] },
 ];
 
 export const subscriptions = [

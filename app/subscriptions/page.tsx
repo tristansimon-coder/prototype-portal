@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { KpiCard } from '@/components/widgets/KpiCard';
 import { SubscriptionTable } from '@/components/widgets/SubscriptionTable';
@@ -22,7 +23,7 @@ export default function SubscriptionsPage() {
 
       <WidgetWrapper title="SubscriptionTable" codeSource={SUBSCRIPTION_TABLE_CODE}>
         <div style={{ paddingTop: 40 }}>
-          <SubscriptionTable data={subscriptions} />
+          <Suspense fallback={null}><SubscriptionTable data={subscriptions} /></Suspense>
         </div>
       </WidgetWrapper>
     </div>

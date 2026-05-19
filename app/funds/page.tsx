@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { FundCard } from '@/components/widgets/FundCard';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
@@ -10,11 +11,13 @@ export default function FundsPage() {
     <div>
       <PageHeader title="Nos fonds" subtitle="Découvrez l'ensemble de nos fonds d'investissement" />
       <WidgetWrapper title="FundCard" codeSource={FUND_CARD_CODE}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 40 }}>
-          {funds.map(fund => (
-            <FundCard key={fund.id} {...fund} />
-          ))}
-        </div>
+        <Suspense fallback={null}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 40 }}>
+            {funds.map(fund => (
+              <FundCard key={fund.id} {...fund} />
+            ))}
+          </div>
+        </Suspense>
       </WidgetWrapper>
     </div>
   );
