@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Button, Modal, Input, Tag } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined, FolderOutlined, WarningFilled } from '@ant-design/icons';
+import { Button, Modal, Input, Tag, Tooltip } from 'antd';
+import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined, FolderOutlined, WarningFilled, DownloadOutlined, MessageOutlined } from '@ant-design/icons';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { kycValidations, kycDocuments, subscriptions } from '@/data/mock';
 
@@ -35,6 +35,9 @@ export default function ValidationPage() {
   const [reopenMessage, setReopenMessage] = useState('');
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [commentTarget, setCommentTarget] = useState<string | null>(null);
+  const [docComments, setDocComments] = useState<Record<string, string>>({});
+  const [commentDraft, setCommentDraft] = useState('');
 
   const sectionStats = useMemo(() => {
     if (!validation) return {};
@@ -123,6 +126,16 @@ export default function ValidationPage() {
     setReopenOpen(false);
     setReopenMessage('');
     router.push(`/subscriptions?persona=${persona}`);
+  }
+
+  function openComment(docId: string) {
+    setCommentTarget(docId);
+    setCommentDraft(docComments[docId] ?? '');
+  }
+
+  function saveComment() {
+    if (commentTarget) setDocComments(prev => ({ ...prev, [commentTarget]: commentDraft }));
+    setCommentTarget(null);
   }
 
   function getStepState(sectionId: string, idx: number): 'completed' | 'current' | 'upcoming' {
@@ -237,71 +250,33 @@ export default function ValidationPage() {
               const state = getStepState(item.id, item.idx);
               const isActive = activeSection === item.id;
               const isLast = listIdx === allStepperItems.length - 1;
-
-              const iconBg =
-                state === 'completed' ? 'rgba(203,255,153,0.6)'
-                : state === 'current' ? 'rgba(255,255,255,0.15)'
-                : 'var(--ih-bg)';
-              const iconColor =
-                state === 'completed' ? '#166534'
-                : state === 'current' ? '#fff'
-                : 'var(--ih-text-secondary)';
-              const cardBg =
-                state === 'completed' ? 'rgba(203,255,153,0.12)'
-                : state === 'current' ? 'var(--ih-primary)'
-                : 'transparent';
-              const cardBorder = isActive
-                ? '2px solid var(--ih-primary)'
-                : state === 'completed' ? '1px solid rgba(203,255,153,0.5)'
-                : '1px solid transparent';
-              const titleColor =
-                state === 'completed' ? '#166534'
-                : state === 'current' ? '#fff'
-                : 'var(--ih-text-secondary)';
-              const subtitleColor =
-                state === 'completed' ? '#4ade80'
-                : state === 'current' ? 'rgba(255,255,255,0.65)'
-                : '#d1d5db';
+              const iconBg = state === 'completed' ? 'rgba(203,255,153,0.6)' : state === 'current' ? 'rgba(255,255,255,0.15)' : 'var(--ih-bg)';
+              const iconColor = state === 'completed' ? '#166534' : state === 'current' ? '#fff' : 'var(--ih-text-secondary)';
+              const cardBg = state === 'completed' ? 'rgba(203,255,153,0.12)' : state === 'current' ? 'var(--ih-primary)' : 'transparent';
+              const cardBorder = isActive ? '2px solid var(--ih-primary)' : state === 'completed' ? '1px solid rgba(203,255,153,0.5)' : '1px solid transparent';
+              const titleColor = state === 'completed' ? '#166534' : state === 'current' ? '#fff' : 'var(--ih-text-secondary)';
+              const subtitleColor = state === 'completed' ? '#4ade80' : state === 'current' ? 'rgba(255,255,255,0.65)' : '#d1d5db';
               const lineColor = state === 'completed' ? 'rgba(203,255,153,0.6)' : 'var(--ih-border)';
               const totalSteps = allStepperItems.length;
-
               return (
                 <div key={item.id}>
                   <div
                     onClick={() => scrollToSection(item.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '10px 12px', borderRadius: 12,
-                      background: cardBg, border: cardBorder,
-                      cursor: 'pointer', transition: 'opacity 0.15s',
-                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: cardBg, border: cardBorder, cursor: 'pointer', transition: 'opacity 0.15s' }}
                     onMouseEnter={e => { if (state === 'upcoming') (e.currentTarget as HTMLDivElement).style.background = 'var(--ih-bg)'; }}
                     onMouseLeave={e => { if (state === 'upcoming') (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                   >
-                    <div style={{
-                      width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                      background: iconBg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {state === 'completed'
-                        ? <CheckOutlined style={{ fontSize: 16, color: iconColor }} />
-                        : item.isDoc
-                          ? <FolderOutlined style={{ fontSize: 16, color: iconColor }} />
-                          : <FileTextOutlined style={{ fontSize: 16, color: iconColor }} />
-                      }
+                    <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {state === 'completed' ? <CheckOutlined style={{ fontSize: 16, color: iconColor }} /> : item.isDoc ? <FolderOutlined style={{ fontSize: 16, color: iconColor }} /> : <FileTextOutlined style={{ fontSize: 16, color: iconColor }} />}
                     </div>
                     <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: titleColor, lineHeight: 1.2 }}>
-                        {item.title}
-                      </div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: titleColor, lineHeight: 1.2 }}>{item.title}</div>
                       <div style={{ fontSize: 12, color: subtitleColor, marginTop: 2 }}>
                         {item.isDoc ? `${docs.length} documents` : `Section ${listIdx + 1}/${totalSteps}`}
                       </div>
                     </div>
                   </div>
-                  {!isLast && (
-                    <div style={{ marginLeft: 30, width: 1, height: 16, background: lineColor }} />
-                  )}
+                  {!isLast && <div style={{ marginLeft: 30, width: 1, height: 16, background: lineColor }} />}
                 </div>
               );
             })}
@@ -317,27 +292,11 @@ export default function ValidationPage() {
             const sectionIconBg = allApproved
               ? 'linear-gradient(135deg, rgba(203,255,153,0.35), rgba(203,255,153,0.75))'
               : 'linear-gradient(135deg, rgba(14,42,50,0.07), rgba(14,42,50,0.15))';
-
             return (
-              <div
-                key={section.id}
-                ref={el => { sectionRefs.current[section.id] = el; }}
-                style={{
-                  marginBottom: 24, background: 'var(--ih-bg-card)',
-                  border: '1px solid var(--ih-border)', borderRadius: 12,
-                  overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                  scrollMarginTop: 32,
-                }}
-              >
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '16px 20px', borderBottom: '1px solid var(--ih-border)',
-                }}>
+              <div key={section.id} ref={el => { sectionRefs.current[section.id] = el; }} style={{ marginBottom: 24, background: 'var(--ih-bg-card)', border: '1px solid var(--ih-border)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', scrollMarginTop: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--ih-border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{
-                      width: 44, height: 44, borderRadius: 10, background: sectionIconBg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 10, background: sectionIconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <CheckOutlined style={{ fontSize: 20, color: 'var(--ih-primary)' }} />
                     </div>
                     <div>
@@ -346,76 +305,38 @@ export default function ValidationPage() {
                         <span><strong style={{ color: 'var(--ih-text-primary)' }}>{stats.answered}</strong>/{stats.total} réponses</span>
                         <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} />
                         <span style={{ color: '#059669' }}><strong>{stats.approved}</strong> validées</span>
-                        {stats.rejected > 0 && (
-                          <>
-                            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} />
-                            <span style={{ color: '#dc2626' }}><strong>{stats.rejected}</strong> refusées</span>
-                          </>
-                        )}
+                        {stats.rejected > 0 && (<><span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} /><span style={{ color: '#dc2626' }}><strong>{stats.rejected}</strong> refusées</span></>)}
                       </div>
                     </div>
                   </div>
                   <SectionStatusBadge approved={stats.approved} total={stats.total} rejected={stats.rejected} />
                 </div>
-
                 {!allApproved && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '10px 20px', background: 'rgba(14,42,50,0.04)',
-                    borderBottom: '1px solid var(--ih-border)',
-                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: 'rgba(14,42,50,0.04)', borderBottom: '1px solid var(--ih-border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ih-primary)' }}>
                       <CheckCircleFilled style={{ color: 'var(--ih-primary)' }} />
                       <span>Vérifier toutes les réponses de cette section</span>
                     </div>
-                    <Button
-                      size="small"
-                      onClick={() => validateSection(section.id, section.fields.length)}
-                      style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', color: '#fff', fontWeight: 600 }}
-                    >
-                      Valider toute la section
-                    </Button>
+                    <Button size="small" onClick={() => validateSection(section.id, section.fields.length)} style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', color: '#fff', fontWeight: 600 }}>Valider toute la section</Button>
                   </div>
                 )}
-
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '2fr 3fr 140px',
-                  padding: '8px 20px', background: 'var(--ih-bg)',
-                  borderBottom: '1px solid var(--ih-border)',
-                }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 140px', padding: '8px 20px', background: 'var(--ih-bg)', borderBottom: '1px solid var(--ih-border)' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question</span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Réponse</span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Vérification</span>
                 </div>
-
                 <div style={{ background: 'var(--ih-bg-card)' }}>
                   {section.fields.map((field, index) => {
                     const key = getFieldKey(section.id, index);
                     const status = fieldStatuses[key] ?? 'pending';
                     const isRejected = status === 'rejected';
                     return (
-                      <div
-                        key={index}
-                        style={{
-                          display: 'grid', gridTemplateColumns: '2fr 3fr 140px',
-                          padding: '12px 20px',
-                          borderBottom: index < section.fields.length - 1 ? '1px solid var(--ih-border)' : 'none',
-                          alignItems: 'center', transition: 'background 0.1s',
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}
-                      >
+                      <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 140px', padding: '12px 20px', borderBottom: index < section.fields.length - 1 ? '1px solid var(--ih-border)' : 'none', alignItems: 'center', transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}>
                         <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-secondary)' }}>{field.question}</span>
                         <span style={{ fontSize: 13.5, color: 'var(--ih-text-primary)', fontWeight: 500 }}>{field.answer}</span>
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                          <CheckCircleFilled
-                            style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }}
-                            onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')}
-                          />
-                          <CloseCircleFilled
-                            style={{ fontSize: 20, color: status === 'rejected' ? '#ef4444' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }}
-                            onClick={() => setFieldStatus(key, status === 'rejected' ? 'pending' : 'rejected')}
-                          />
+                          <CheckCircleFilled style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')} />
+                          <CloseCircleFilled style={{ fontSize: 20, color: status === 'rejected' ? '#ef4444' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => setFieldStatus(key, status === 'rejected' ? 'pending' : 'rejected')} />
                         </div>
                       </div>
                     );
@@ -431,27 +352,12 @@ export default function ValidationPage() {
             const docsIconBg = allDocsApproved
               ? 'linear-gradient(135deg, rgba(203,255,153,0.35), rgba(203,255,153,0.75))'
               : 'linear-gradient(135deg, rgba(14,42,50,0.07), rgba(14,42,50,0.15))';
-
             return (
-              <div
-                ref={el => { sectionRefs.current['documents'] = el; }}
-                style={{
-                  marginBottom: 24, background: 'var(--ih-bg-card)',
-                  border: '1px solid var(--ih-border)', borderRadius: 12,
-                  overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                  scrollMarginTop: 32,
-                }}
-              >
-                {/* Section header */}
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '16px 20px', borderBottom: '1px solid var(--ih-border)',
-                }}>
+              <div ref={el => { sectionRefs.current['documents'] = el; }} style={{ marginBottom: 24, background: 'var(--ih-bg-card)', border: '1px solid var(--ih-border)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', scrollMarginTop: 32 }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--ih-border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{
-                      width: 44, height: 44, borderRadius: 10, background: docsIconBg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 10, background: docsIconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <FolderOutlined style={{ fontSize: 20, color: 'var(--ih-primary)' }} />
                     </div>
                     <div>
@@ -460,12 +366,7 @@ export default function ValidationPage() {
                         <span><strong style={{ color: 'var(--ih-text-primary)' }}>{docs.length}</strong> documents</span>
                         <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} />
                         <span style={{ color: '#059669' }}><strong>{docStats.approved}</strong> validés</span>
-                        {docStats.rejected > 0 && (
-                          <>
-                            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} />
-                            <span style={{ color: '#dc2626' }}><strong>{docStats.rejected}</strong> refusés</span>
-                          </>
-                        )}
+                        {docStats.rejected > 0 && (<><span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} /><span style={{ color: '#dc2626' }}><strong>{docStats.rejected}</strong> refusés</span></>)}
                       </div>
                     </div>
                   </div>
@@ -474,61 +375,55 @@ export default function ValidationPage() {
 
                 {/* Validate all bar */}
                 {!allDocsApproved && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '10px 20px', background: 'rgba(14,42,50,0.04)',
-                    borderBottom: '1px solid var(--ih-border)',
-                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: 'rgba(14,42,50,0.04)', borderBottom: '1px solid var(--ih-border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ih-primary)' }}>
                       <CheckCircleFilled style={{ color: 'var(--ih-primary)' }} />
                       <span>Vérifier tous les documents de cette section</span>
                     </div>
-                    <Button
-                      size="small"
-                      onClick={validateAllDocs}
-                      style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', color: '#fff', fontWeight: 600 }}
-                    >
-                      Valider toute la section
-                    </Button>
+                    <Button size="small" onClick={validateAllDocs} style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', color: '#fff', fontWeight: 600 }}>Valider toute la section</Button>
                   </div>
                 )}
 
-                {/* Column headers */}
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '3fr 2fr 2fr 100px',
-                  padding: '8px 20px', background: 'var(--ih-bg)',
-                  borderBottom: '1px solid var(--ih-border)',
-                }}>
-                  {['Document', "Date d'envoi", 'Expiration', 'Vérification'].map((h, i) => (
-                    <span key={h} style={{ fontSize: 12, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: i === 3 ? 'right' : 'left' }}>{h}</span>
+                {/* Column headers — Document | Date | Expiration | Voir | Vérification */}
+                <div style={{ display: 'grid', gridTemplateColumns: '3fr 1.6fr 1.6fr 110px 130px', padding: '8px 20px', background: 'var(--ih-bg)', borderBottom: '1px solid var(--ih-border)' }}>
+                  {['Document', "Date d'envoi", 'Expiration', 'Voir', 'Vérification'].map((h, i) => (
+                    <span key={h} style={{ fontSize: 12, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: i >= 3 ? 'right' : 'left' }}>{h}</span>
                   ))}
                 </div>
 
-                {/* Document rows */}
+                {/* Rows */}
                 <div style={{ background: 'var(--ih-bg-card)' }}>
                   {docs.map((doc, index) => {
                     const key = `doc-${doc.id}`;
                     const status = fieldStatuses[key] ?? 'pending';
                     const isRejected = status === 'rejected';
+                    const hasComment = !!docComments[doc.id];
                     return (
-                      <div
-                        key={doc.id}
-                        style={{
-                          display: 'grid', gridTemplateColumns: '3fr 2fr 2fr 100px',
-                          padding: '12px 20px',
-                          borderBottom: index < docs.length - 1 ? '1px solid var(--ih-border)' : 'none',
-                          alignItems: 'center', transition: 'background 0.1s',
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}
-                      >
-                        <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-primary)', fontWeight: 500 }}>{doc.name}</span>
+                      <div key={doc.id} style={{ display: 'grid', gridTemplateColumns: '3fr 1.6fr 1.6fr 110px 130px', padding: '12px 20px', borderBottom: index < docs.length - 1 ? '1px solid var(--ih-border)' : 'none', alignItems: 'center', transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}>
+                        <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-primary)', fontWeight: 500, paddingRight: 12 }}>{doc.name}</span>
                         <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>{doc.sentAt}</span>
                         <span style={{ fontSize: 13, color: doc.expired ? '#dc2626' : 'var(--ih-text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
                           {doc.expired && <WarningFilled style={{ color: '#f59e0b', fontSize: 13 }} />}
                           {doc.expiresAt ?? '—'}
                         </span>
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        {/* Voir */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <Button
+                            size="small"
+                            icon={<DownloadOutlined />}
+                            style={{ fontSize: 12, color: 'var(--ih-primary)', borderColor: 'var(--ih-border)', background: 'var(--ih-bg)' }}
+                          >
+                            Télécharger
+                          </Button>
+                        </div>
+                        {/* Vérification: comment + check + x */}
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <Tooltip title={hasComment ? docComments[doc.id] : 'Ajouter un commentaire'}>
+                            <MessageOutlined
+                              style={{ fontSize: 17, color: hasComment ? 'var(--ih-primary)' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }}
+                              onClick={() => openComment(doc.id)}
+                            />
+                          </Tooltip>
                           <CheckCircleFilled
                             style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }}
                             onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')}
@@ -547,25 +442,13 @@ export default function ValidationPage() {
           })()}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-            <Button
-              onClick={() => setReopenOpen(true)}
-              style={{ background: '#e05c6a', borderColor: '#e05c6a', color: '#fff', fontWeight: 600 }}
-            >
-              Rouvrir le KYC
-            </Button>
-            <Button
-              onClick={() => router.push(`/subscriptions?persona=${persona}`)}
-              style={{
-                background: 'linear-gradient(62deg, var(--ih-primary) 10%, var(--ih-primary-light) 89%)',
-                borderColor: 'transparent', color: '#fff', fontWeight: 600,
-              }}
-            >
-              Valider le KYC
-            </Button>
+            <Button onClick={() => setReopenOpen(true)} style={{ background: '#e05c6a', borderColor: '#e05c6a', color: '#fff', fontWeight: 600 }}>Rouvrir le KYC</Button>
+            <Button onClick={() => router.push(`/subscriptions?persona=${persona}`)} style={{ background: 'linear-gradient(62deg, var(--ih-primary) 10%, var(--ih-primary-light) 89%)', borderColor: 'transparent', color: '#fff', fontWeight: 600 }}>Valider le KYC</Button>
           </div>
         </div>
       </div>
 
+      {/* Reopen KYC modal */}
       <Modal open={reopenOpen} onCancel={() => setReopenOpen(false)} footer={null} closable={false} width={580}>
         <div>
           <p style={{ fontSize: 13, color: 'var(--ih-text-secondary)', marginBottom: 20, lineHeight: 1.7 }}>
@@ -577,13 +460,33 @@ export default function ValidationPage() {
             <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 6 }}>Message :</div>
             <Input.TextArea value={reopenMessage} onChange={e => setReopenMessage(e.target.value)} rows={4} style={{ width: '100%' }} />
           </div>
-          <Button
-            type="primary"
-            onClick={handleReopen}
-            style={{ width: '100%', background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', fontWeight: 600, height: 44 }}
-          >
-            Rouvrir le KYC
-          </Button>
+          <Button type="primary" onClick={handleReopen} style={{ width: '100%', background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', fontWeight: 600, height: 44 }}>Rouvrir le KYC</Button>
+        </div>
+      </Modal>
+
+      {/* Per-document comment modal */}
+      <Modal
+        open={commentTarget !== null}
+        onCancel={() => setCommentTarget(null)}
+        footer={null}
+        title="Commentaire sur le document"
+        width={480}
+      >
+        <div style={{ paddingTop: 8 }}>
+          <div style={{ fontSize: 13, color: 'var(--ih-text-secondary)', marginBottom: 12 }}>
+            {docs.find(d => d.id === commentTarget)?.name}
+          </div>
+          <Input.TextArea
+            value={commentDraft}
+            onChange={e => setCommentDraft(e.target.value)}
+            rows={4}
+            placeholder="Votre commentaire sur ce document…"
+            style={{ marginBottom: 16 }}
+          />
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Button onClick={() => setCommentTarget(null)}>Annuler</Button>
+            <Button type="primary" onClick={saveComment} style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)' }}>Enregistrer</Button>
+          </div>
         </div>
       </Modal>
     </div>
