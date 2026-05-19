@@ -1030,3 +1030,159 @@ export function PerformanceChart({ data, height = 280 }: PerformanceChartProps) 
 }
 `;
 
+export const VALIDATION_PAGE_CODE = `'use client';
+// Page de prévalidation partenaire de délégation
+// Accessible via : /subscriptions/[id]/validation?persona=distributor
+// Uniquement disponible en vue distributeur (persona=distributor)
+
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Button, Modal, Input, Tag, Tooltip, Upload, Drawer } from 'antd';
+import {
+  CheckCircleFilled, CloseCircleFilled, CheckOutlined,
+  ArrowLeftOutlined, FileTextOutlined, FolderOutlined,
+  WarningFilled, DownloadOutlined, MessageOutlined, UploadOutlined, CodeOutlined
+} from '@ant-design/icons';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { kycValidations, kycDocuments, subscriptions } from '@/data/mock';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { VALIDATION_PAGE_CODE } from '@/lib/code-sources';
+
+type FieldStatus = 'pending' | 'approved' | 'rejected';
+
+export default function ValidationPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const persona = useSearchParams().get('persona') ?? 'lp';
+
+  const validation = kycValidations[Number(id)];
+  const docs = kycDocuments[Number(id)] ?? [];
+  const subscription = subscriptions.find(s => s.id === Number(id));
+
+  // State
+  const [fieldStatuses, setFieldStatuses] = useState<Record<string, FieldStatus>>({});
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopenMessage, setReopenMessage] = useState('');
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [commentTarget, setCommentTarget] = useState<string | null>(null);
+  const [docComments, setDocComments] = useState<Record<string, string>>({});
+  const [replacedDocs, setReplacedDocs] = useState<Record<string, string>>({});
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Computed stats
+  const sectionStats = useMemo(() => { /* ... per-section approve/reject counts */ }, [validation, fieldStatuses]);
+  const docStats = useMemo(() => { /* ... doc approve/reject counts */ }, [docs, fieldStatuses]);
+  const totalApproved = /* sum of all approved fields + docs */;
+  const totalFields = /* sum of all fields + docs.length */;
+  const progressPct = totalFields > 0 ? Math.round((totalApproved / totalFields) * 100) : 0;
+
+  // Scroll tracking via IntersectionObserver
+  useEffect(() => {
+    const sectionIds = [...validation.sections.map(s => s.id), 'documents'];
+    const observers = sectionIds.map(sid => {
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(sid); },
+        { threshold: 0.3 }
+      );
+      if (sectionRefs.current[sid]) obs.observe(sectionRefs.current[sid]!);
+      return obs;
+    });
+    return () => observers.forEach(o => o.disconnect());
+  }, [validation]);
+
+  return (
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
+
+      {/* Top nav: back button + code button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <button onClick={() => router.push(\`/subscriptions?persona=\${persona}\`)}>
+          ← Retour aux souscriptions
+        </button>
+        <Button type="text" icon={<CodeOutlined />} onClick={() => setCodeOpen(true)}
+          style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}
+        >
+          Code
+        </Button>
+      </div>
+
+      {/* Header card: investor name, fund, 4 metrics, progress bar */}
+      <div style={{ background: 'var(--ih-bg-card)', borderLeft: '4px solid var(--ih-accent)', borderRadius: 14, padding: '24px 28px', marginBottom: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>{validation.investorName}</div>
+            <div style={{ fontSize: 13.5, color: 'var(--ih-text-secondary)' }}>{subscription.fund} · {validation.part}</div>
+          </div>
+          <Tag color="purple">Étude du dossier</Tag>
+        </div>
+        {/* 4 metric mini-cards */}
+        <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
+          {metrics.map(m => <MetricCard key={m.label} {...m} />)}
+        </div>
+        {/* Progress bar */}
+        <ProgressBar pct={progressPct} total={totalFields} approved={totalApproved} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '236px 1fr', gap: 24 }}>
+
+        {/* Sticky stepper sidebar */}
+        <div style={{ position: 'sticky', top: 24 }}>
+          <StepperSidebar
+            sections={allStepperItems}
+            activeSection={activeSection}
+            sectionStats={sectionStats}
+            onNavigate={scrollToSection}
+          />
+        </div>
+
+        {/* Main content */}
+        <div>
+          {/* KYC sections — field-by-field validation */}
+          {validation.sections.map(section => (
+            <KycSectionCard
+              key={section.id}
+              ref={el => { sectionRefs.current[section.id] = el; }}
+              section={section}
+              fieldStatuses={fieldStatuses}
+              onSetStatus={setFieldStatus}
+              onValidateAll={() => validateSection(section.id, section.fields.length)}
+            />
+          ))}
+
+          {/* Documents section */}
+          <DocumentsSection
+            ref={el => { sectionRefs.current['documents'] = el; }}
+            docs={docs}
+            fieldStatuses={fieldStatuses}
+            docComments={docComments}
+            replacedDocs={replacedDocs}
+            onSetStatus={setFieldStatus}
+            onComment={openComment}
+            onReplace={(docId, fileName) => setReplacedDocs(p => ({ ...p, [docId]: fileName }))}
+            onValidateAll={validateAllDocs}
+          />
+
+          {/* Footer actions */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+            <Button danger onClick={() => setReopenOpen(true)}>Rouvrir le KYC</Button>
+            <Button type="primary" onClick={() => router.push(\`/subscriptions?persona=\${persona}\`)}>Valider le KYC</Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Reopen modal */}
+      <Modal open={reopenOpen} onCancel={() => setReopenOpen(false)} footer={null}>
+        <Input.TextArea value={reopenMessage} onChange={e => setReopenMessage(e.target.value)} rows={4} />
+        <Button type="primary" onClick={handleReopen}>Rouvrir le KYC</Button>
+      </Modal>
+
+      {/* Code viewer */}
+      <Drawer open={codeOpen} onClose={() => setCodeOpen(false)} title="Code — ValidationPage" width={720}>
+        <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
+          {VALIDATION_PAGE_CODE}
+        </SyntaxHighlighter>
+      </Drawer>
+    </div>
+  );
+}
+`;

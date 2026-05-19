@@ -1,9 +1,12 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Button, Modal, Input, Tag, Tooltip, Upload } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined, FolderOutlined, WarningFilled, DownloadOutlined, MessageOutlined, UploadOutlined } from '@ant-design/icons';
+import { Button, Modal, Input, Tag, Tooltip, Upload, Drawer } from 'antd';
+import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined, FolderOutlined, WarningFilled, DownloadOutlined, MessageOutlined, UploadOutlined, CodeOutlined } from '@ant-design/icons';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { kycValidations, kycDocuments, subscriptions } from '@/data/mock';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { VALIDATION_PAGE_CODE } from '@/lib/code-sources';
 
 type FieldStatus = 'pending' | 'approved' | 'rejected';
 
@@ -34,6 +37,7 @@ export default function ValidationPage() {
   const [reopenOpen, setReopenOpen] = useState(false);
   const [reopenMessage, setReopenMessage] = useState('');
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [codeOpen, setCodeOpen] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
   const [docComments, setDocComments] = useState<Record<string, string>>({});
@@ -165,26 +169,37 @@ export default function ValidationPage() {
     { id: 'documents', title: 'Documents', idx: validation.sections.length, isDoc: true },
   ];
 
-  // grid for doc rows: name | date | expiry | télécharger | remplacer | vérification
   const DOC_GRID = '3fr 1.4fr 1.4fr 110px 110px 130px';
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
 
-      <button
-        onClick={() => router.push(`/subscriptions?persona=${persona}`)}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ih-text-secondary)', fontSize: 13, fontWeight: 500, padding: '0 0 20px 0', fontFamily: 'inherit' }}
-      >
-        <ArrowLeftOutlined style={{ fontSize: 12 }} />
-        Retour aux souscriptions
-      </button>
+      {/* Top nav */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <button
+          onClick={() => router.push(`/subscriptions?persona=${persona}`)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ih-text-secondary)', fontSize: 13, fontWeight: 500, padding: 0, fontFamily: 'inherit' }}
+        >
+          <ArrowLeftOutlined style={{ fontSize: 12 }} />
+          Retour aux souscriptions
+        </button>
+        <Button
+          type="text"
+          size="small"
+          icon={<CodeOutlined />}
+          onClick={() => setCodeOpen(true)}
+          style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}
+        >
+          Code
+        </Button>
+      </div>
 
       {/* Header card */}
       <div style={{ background: 'var(--ih-bg-card)', border: '1px solid var(--ih-border)', borderRadius: 14, borderLeft: '4px solid var(--ih-accent)', padding: '24px 28px', marginBottom: 32, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ih-text-primary)', lineHeight: 1.2, marginBottom: 4 }}>{validation.investorName}</div>
-            <div style={{ fontSize: 13.5, color: 'var(--ih-text-secondary)' }}>{subscription.fund} · {validation.part}</div>
+            <div style={{ fontSize: 13.5, color: 'var(--ih-text-secondary)' }}>{subscription.fund} · {validation.part}</div>
           </div>
           <Tag color="purple" style={{ borderRadius: 20, fontWeight: 600, fontSize: 12.5, padding: '3px 12px', marginTop: 4 }}>Étude du dossier</Tag>
         </div>
@@ -193,7 +208,7 @@ export default function ValidationPage() {
             { label: 'Montant souscrit', value: formatEur(validation.partValue) },
             { label: "Frais d'entrée", value: formatEur(validation.entryFees) },
             { label: 'Sections', value: `${validation.sections.length}` },
-            { label: 'Champs validés', value: `${totalApproved} / ${totalFields}` },
+            { label: 'Champs validés', value: `${totalApproved} / ${totalFields}` },
           ].map(m => (
             <div key={m.label} style={{ flex: 1, background: 'var(--ih-bg)', border: '1px solid var(--ih-border)', borderRadius: 10, padding: '10px 14px' }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{m.label}</div>
@@ -205,7 +220,7 @@ export default function ValidationPage() {
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 6 }}>
               <span>Progression de la validation</span>
-              <span style={{ fontWeight: 600, color: 'var(--ih-text-primary)' }}>{progressPct} %</span>
+              <span style={{ fontWeight: 600, color: 'var(--ih-text-primary)' }}>{progressPct} %</span>
             </div>
             <div style={{ height: 6, background: 'var(--ih-border)', borderRadius: 99, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${progressPct}%`, background: progressPct === 100 ? '#10b981' : 'var(--ih-primary)', borderRadius: 99, transition: 'width 0.3s ease' }} />
@@ -251,7 +266,6 @@ export default function ValidationPage() {
 
         {/* Section cards */}
         <div>
-          {/* KYC field sections */}
           {validation.sections.map((section) => {
             const stats = sectionStats[section.id] ?? { total: 0, answered: 0, approved: 0, rejected: 0 };
             const allApproved = stats.approved === stats.total && stats.total > 0;
@@ -310,13 +324,11 @@ export default function ValidationPage() {
             );
           })}
 
-          {/* Documents section */}
           {docs.length > 0 && (() => {
             const allDocsApproved = docStats.approved === docStats.total && docStats.total > 0;
             const docsIconBg = allDocsApproved ? 'linear-gradient(135deg, rgba(203,255,153,0.35), rgba(203,255,153,0.75))' : 'linear-gradient(135deg, rgba(14,42,50,0.07), rgba(14,42,50,0.15))';
             return (
               <div ref={el => { sectionRefs.current['documents'] = el; }} style={{ marginBottom: 24, background: 'var(--ih-bg-card)', border: '1px solid var(--ih-border)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', scrollMarginTop: 32 }}>
-                {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--ih-border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     <div style={{ width: 44, height: 44, borderRadius: 10, background: docsIconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -334,8 +346,6 @@ export default function ValidationPage() {
                   </div>
                   <SectionStatusBadge approved={docStats.approved} total={docStats.total} rejected={docStats.rejected} />
                 </div>
-
-                {/* Validate all bar */}
                 {!allDocsApproved && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: 'rgba(14,42,50,0.04)', borderBottom: '1px solid var(--ih-border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ih-primary)' }}>
@@ -345,15 +355,11 @@ export default function ValidationPage() {
                     <Button size="small" onClick={validateAllDocs} style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', color: '#fff', fontWeight: 600 }}>Valider toute la section</Button>
                   </div>
                 )}
-
-                {/* Column headers */}
                 <div style={{ display: 'grid', gridTemplateColumns: DOC_GRID, padding: '8px 20px', background: 'var(--ih-bg)', borderBottom: '1px solid var(--ih-border)' }}>
                   {['Document', "Date d'envoi", 'Expiration', 'Voir', 'Action', 'Vérification'].map((h, i) => (
                     <span key={h} style={{ fontSize: 12, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: i >= 3 ? 'right' : 'left' }}>{h}</span>
                   ))}
                 </div>
-
-                {/* Rows */}
                 <div style={{ background: 'var(--ih-bg-card)' }}>
                   {docs.map((doc, index) => {
                     const key = `doc-${doc.id}`;
@@ -363,25 +369,20 @@ export default function ValidationPage() {
                     const replacedName = replacedDocs[doc.id];
                     return (
                       <div key={doc.id} style={{ display: 'grid', gridTemplateColumns: DOC_GRID, padding: '12px 20px', borderBottom: index < docs.length - 1 ? '1px solid var(--ih-border)' : 'none', alignItems: 'center', transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}>
-                        {/* Document name */}
                         <div style={{ paddingRight: 12 }}>
                           <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-primary)', fontWeight: 500 }}>{doc.name}</span>
                           {replacedName && (
-                            <div style={{ fontSize: 11.5, color: '#059669', marginTop: 2 }}>✓ Remplacé : {replacedName}</div>
+                            <div style={{ fontSize: 11.5, color: '#059669', marginTop: 2 }}>✓ Remplacé : {replacedName}</div>
                           )}
                         </div>
-                        {/* Date */}
                         <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>{doc.sentAt}</span>
-                        {/* Expiration */}
                         <span style={{ fontSize: 13, color: doc.expired ? '#dc2626' : 'var(--ih-text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
                           {doc.expired && <WarningFilled style={{ color: '#f59e0b', fontSize: 13 }} />}
                           {doc.expiresAt ?? '—'}
                         </span>
-                        {/* Voir → Télécharger */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <Button size="small" icon={<DownloadOutlined />} style={{ fontSize: 12, color: 'var(--ih-primary)', borderColor: 'var(--ih-border)', background: 'var(--ih-bg)' }}>Télécharger</Button>
                         </div>
-                        {/* Action → Remplacer */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <Upload
                             beforeUpload={file => {
@@ -394,7 +395,6 @@ export default function ValidationPage() {
                             <Button size="small" icon={<UploadOutlined />} style={{ fontSize: 12, color: 'var(--ih-primary)', borderColor: 'var(--ih-border)', background: 'var(--ih-bg)' }}>Remplacer</Button>
                           </Upload>
                         </div>
-                        {/* Vérification */}
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
                           <Tooltip title={hasComment ? docComments[doc.id] : 'Ajouter un commentaire'}>
                             <MessageOutlined style={{ fontSize: 17, color: hasComment ? 'var(--ih-primary)' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => openComment(doc.id)} />
@@ -444,6 +444,18 @@ export default function ValidationPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Code viewer drawer */}
+      <Drawer
+        open={codeOpen}
+        onClose={() => setCodeOpen(false)}
+        title="Code — ValidationPage"
+        width={720}
+      >
+        <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
+          {VALIDATION_PAGE_CODE}
+        </SyntaxHighlighter>
+      </Drawer>
     </div>
   );
 }
