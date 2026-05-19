@@ -1,5 +1,5 @@
 'use client';
-import { Button } from 'antd';
+import { Button, Tag } from 'antd';
 import { PictureOutlined } from '@ant-design/icons';
 
 interface SecondaryMarketCardProps {
@@ -13,25 +13,31 @@ interface SecondaryMarketCardProps {
   navDate?: string;
   status?: 'available' | 'pending';
   pendingSince?: string;
+  fundType?: 'call' | 'direct';
+  calledPct?: number;
+  engagementPerShare?: number;
 }
 
 function eur(v: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(v);
 }
 
-function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function Row({ label, value, highlight, warning }: { label: string; value: string; highlight?: boolean; warning?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', borderBottom: '1px solid var(--ih-border)' }}>
-      <span style={{ color: 'var(--ih-text-secondary)', fontSize: 13 }}>{label}</span>
-      <span style={{ fontWeight: highlight ? 700 : 600, fontSize: highlight ? 15 : 14, color: 'var(--ih-text-primary)' }}>{value}</span>
+      <span style={{ color: warning ? '#d97706' : 'var(--ih-text-secondary)', fontSize: 13 }}>{label}</span>
+      <span style={{ fontWeight: highlight || warning ? 700 : 600, fontSize: highlight ? 15 : 14, color: warning ? '#d97706' : 'var(--ih-text-primary)' }}>{value}</span>
     </div>
   );
 }
 
-export function SecondaryMarketCard({ fund, part, shares, price, validUntil, image, navPerShare, navDate, status = 'available', pendingSince }: SecondaryMarketCardProps) {
+export function SecondaryMarketCard({ fund, part, shares, price, validUntil, image, navPerShare, navDate, status = 'available', pendingSince, fundType = 'direct', calledPct, engagementPerShare }: SecondaryMarketCardProps) {
   const totalValue = navPerShare ? navPerShare * shares : null;
   const totalToPay = price * shares;
+  const totalEngagement = engagementPerShare ? engagementPerShare * shares : null;
+  const totalExposure = totalEngagement ? totalToPay + totalEngagement : null;
   const isPending = status === 'pending';
+  const isCall = fundType === 'call';
 
   return (
     <div style={{
@@ -55,6 +61,17 @@ export function SecondaryMarketCard({ fund, part, shares, price, validUntil, ima
             <PictureOutlined style={{ fontSize: 36, color: 'rgba(255,255,255,0.4)' }} />
           </div>
         )}
+
+        {/* Badge type de fonds */}
+        <div style={{ position: 'absolute', top: 10, left: 10 }}>
+          <Tag
+            style={{ margin: 0, fontWeight: 600, fontSize: 11, borderRadius: 20 }}
+            color={isCall ? 'blue' : 'green'}
+          >
+            {isCall ? 'Fonds à appel' : 'Paiement direct'}
+          </Tag>
+        </div>
+
         {isPending && (
           <div style={{
             position: 'absolute', bottom: 10, left: 10,
@@ -75,14 +92,44 @@ export function SecondaryMarketCard({ fund, part, shares, price, validUntil, ima
       </div>
 
       {/* Info rows */}
-      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Row label="Nombre de parts" value={shares.toLocaleString('fr-FR')} />
         {navPerShare && <Row label={`Valeur par part${navDate ? ` (${navDate})` : ''}`} value={eur(navPerShare)} highlight />}
+
+        {/* Barre d'appel — fonds à appel uniquement */}
+        {isCall && calledPct !== undefined && (
+          <div style={{ padding: '8px 0', borderBottom: '1px solid var(--ih-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+              <span style={{ color: 'var(--ih-text-secondary)', fontSize: 13 }}>Capital appelé</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)' }}>{calledPct}%</span>
+            </div>
+            <div style={{ height: 5, background: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: `${calledPct}%`, height: '100%', background: 'var(--ih-primary)', borderRadius: 3 }} />
+            </div>
+          </div>
+        )}
+
         <Row label="Prix par part (cession)" value={eur(price)} />
-        {totalValue   && <Row label="Valeur totale à date" value={eur(totalValue)} highlight />}
+        {totalValue && <Row label="Valeur totale à date" value={eur(totalValue)} highlight />}
         <Row label="Montant total à payer" value={eur(totalToPay)} />
+
+        {/* Engagement restant — fonds à appel */}
+        {isCall && totalEngagement !== null && (
+          <Row label="Engagement restant à reprendre" value={eur(totalEngagement)} warning />
+        )}
+        {isCall && totalExposure !== null && (
+          <Row label="Exposition économique totale" value={eur(totalExposure)} />
+        )}
+
         <Row label="Offre valable jusqu'au" value={validUntil} />
       </div>
+
+      {/* Avertissement engagement */}
+      {isCall && totalEngagement !== null && (
+        <div style={{ margin: '8px 20px 0', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 12, color: '#92400e' }}>
+          ⚠ En achetant ces parts, vous reprenez {eur(engagementPerShare!)} d&apos;engagement futur par part.
+        </div>
+      )}
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, padding: '16px 20px' }}>

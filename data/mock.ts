@@ -66,6 +66,9 @@ export const secondaryMarket = [
     navPerShare: 118.50,
     navDate: '30/04/2026',
     status: 'available' as const,
+    fundType: 'call' as const,
+    calledPct: 42,
+    engagementPerShare: 68.50,
   },
   {
     id: 2,
@@ -79,6 +82,9 @@ export const secondaryMarket = [
     navDate: '30/04/2026',
     status: 'pending' as const,
     pendingSince: '12/05/2026',
+    fundType: 'call' as const,
+    calledPct: 42,
+    engagementPerShare: 68.50,
   },
   {
     id: 3,
@@ -91,6 +97,7 @@ export const secondaryMarket = [
     navPerShare: 198.75,
     navDate: '30/04/2026',
     status: 'available' as const,
+    fundType: 'direct' as const,
   },
 ];
 
