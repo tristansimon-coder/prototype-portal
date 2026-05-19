@@ -1,9 +1,9 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button, Modal, Input, Tag } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined, FolderOutlined, WarningFilled } from '@ant-design/icons';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { kycValidations, subscriptions } from '@/data/mock';
+import { kycValidations, kycDocuments, subscriptions } from '@/data/mock';
 
 type FieldStatus = 'pending' | 'approved' | 'rejected';
 
@@ -27,6 +27,7 @@ export default function ValidationPage() {
 
   const id = Number(params.id);
   const validation = kycValidations[id];
+  const docs = kycDocuments[id] ?? [];
   const subscription = subscriptions.find(s => s.id === id);
 
   const [fieldStatuses, setFieldStatuses] = useState<Record<string, FieldStatus>>({});
@@ -50,31 +51,42 @@ export default function ValidationPage() {
     return stats;
   }, [validation, fieldStatuses]);
 
+  const docStats = useMemo(() => {
+    let approved = 0, rejected = 0;
+    for (const doc of docs) {
+      const st = fieldStatuses[`doc-${doc.id}`] ?? 'pending';
+      if (st === 'approved') approved++;
+      if (st === 'rejected') rejected++;
+    }
+    return { total: docs.length, approved, rejected };
+  }, [docs, fieldStatuses]);
+
   const totalApproved = useMemo(() => {
     if (!validation) return 0;
-    return validation.sections.reduce((sum, s) => sum + (sectionStats[s.id]?.approved ?? 0), 0);
-  }, [validation, sectionStats]);
+    return validation.sections.reduce((sum, s) => sum + (sectionStats[s.id]?.approved ?? 0), 0) + docStats.approved;
+  }, [validation, sectionStats, docStats]);
 
   const totalFields = useMemo(() => {
     if (!validation) return 0;
-    return validation.sections.reduce((sum, s) => sum + s.fields.length, 0);
-  }, [validation]);
+    return validation.sections.reduce((sum, s) => sum + s.fields.length, 0) + docs.length;
+  }, [validation, docs]);
 
   useEffect(() => {
     if (!validation) return;
     const observers: IntersectionObserver[] = [];
-    for (const section of validation.sections) {
-      const el = sectionRefs.current[section.id];
+    const sectionIds = [...validation.sections.map(s => s.id), 'documents'];
+    for (const sid of sectionIds) {
+      const el = sectionRefs.current[sid];
       if (!el) continue;
       const obs = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActiveSection(section.id); },
-        { threshold: 0.35 }
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(sid); },
+        { threshold: 0.3 }
       );
       obs.observe(el);
       observers.push(obs);
     }
     return () => observers.forEach(o => o.disconnect());
-  }, [validation]);
+  }, [validation, docs]);
 
   if (!validation || !subscription) {
     return (
@@ -87,13 +99,19 @@ export default function ValidationPage() {
 
   function getFieldKey(sectionId: string, index: number) { return `${sectionId}-${index}`; }
 
-  function setFieldStatus(sectionId: string, index: number, next: FieldStatus) {
-    setFieldStatuses(prev => ({ ...prev, [getFieldKey(sectionId, index)]: next }));
+  function setFieldStatus(key: string, next: FieldStatus) {
+    setFieldStatuses(prev => ({ ...prev, [key]: next }));
   }
 
   function validateSection(sectionId: string, fieldCount: number) {
     const updates: Record<string, FieldStatus> = {};
     for (let i = 0; i < fieldCount; i++) updates[getFieldKey(sectionId, i)] = 'approved';
+    setFieldStatuses(prev => ({ ...prev, ...updates }));
+  }
+
+  function validateAllDocs() {
+    const updates: Record<string, FieldStatus> = {};
+    for (const doc of docs) updates[`doc-${doc.id}`] = 'approved';
     setFieldStatuses(prev => ({ ...prev, ...updates }));
   }
 
@@ -107,7 +125,15 @@ export default function ValidationPage() {
     router.push(`/subscriptions?persona=${persona}`);
   }
 
-  function getStepState(idx: number): 'completed' | 'current' | 'upcoming' {
+  function getStepState(sectionId: string, idx: number): 'completed' | 'current' | 'upcoming' {
+    if (sectionId === 'documents') {
+      if (docStats.approved === docStats.total && docStats.total > 0) return 'completed';
+      const allKycDone = validation.sections.every(s => {
+        const ps = sectionStats[s.id] ?? { total: 0, approved: 0 };
+        return ps.approved === ps.total && ps.total > 0;
+      });
+      return allKycDone ? 'current' : 'upcoming';
+    }
     const s = validation.sections[idx];
     const stats = sectionStats[s.id] ?? { total: 0, approved: 0, rejected: 0 };
     if (stats.approved === stats.total && stats.total > 0) return 'completed';
@@ -119,6 +145,11 @@ export default function ValidationPage() {
   }
 
   const progressPct = totalFields > 0 ? Math.round((totalApproved / totalFields) * 100) : 0;
+
+  const allStepperItems = [
+    ...validation.sections.map((s, idx) => ({ id: s.id, title: s.title, idx, isDoc: false })),
+    { id: 'documents', title: 'Documents', idx: validation.sections.length, isDoc: true },
+  ];
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
@@ -202,10 +233,10 @@ export default function ValidationPage() {
               Sections du KYC
             </div>
 
-            {validation.sections.map((section, idx) => {
-              const state = getStepState(idx);
-              const isActive = activeSection === section.id;
-              const isLast = idx === validation.sections.length - 1;
+            {allStepperItems.map((item, listIdx) => {
+              const state = getStepState(item.id, item.idx);
+              const isActive = activeSection === item.id;
+              const isLast = listIdx === allStepperItems.length - 1;
 
               const iconBg =
                 state === 'completed' ? 'rgba(203,255,153,0.6)'
@@ -231,13 +262,13 @@ export default function ValidationPage() {
                 state === 'completed' ? '#4ade80'
                 : state === 'current' ? 'rgba(255,255,255,0.65)'
                 : '#d1d5db';
-              const lineColor =
-                state === 'completed' ? 'rgba(203,255,153,0.6)' : 'var(--ih-border)';
+              const lineColor = state === 'completed' ? 'rgba(203,255,153,0.6)' : 'var(--ih-border)';
+              const totalSteps = allStepperItems.length;
 
               return (
-                <div key={section.id}>
+                <div key={item.id}>
                   <div
-                    onClick={() => scrollToSection(section.id)}
+                    onClick={() => scrollToSection(item.id)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,
                       padding: '10px 12px', borderRadius: 12,
@@ -254,15 +285,17 @@ export default function ValidationPage() {
                     }}>
                       {state === 'completed'
                         ? <CheckOutlined style={{ fontSize: 16, color: iconColor }} />
-                        : <FileTextOutlined style={{ fontSize: 16, color: iconColor }} />
+                        : item.isDoc
+                          ? <FolderOutlined style={{ fontSize: 16, color: iconColor }} />
+                          : <FileTextOutlined style={{ fontSize: 16, color: iconColor }} />
                       }
                     </div>
                     <div>
                       <div style={{ fontSize: 13.5, fontWeight: 700, color: titleColor, lineHeight: 1.2 }}>
-                        {section.title}
+                        {item.title}
                       </div>
                       <div style={{ fontSize: 12, color: subtitleColor, marginTop: 2 }}>
-                        Section {idx + 1}/{validation.sections.length}
+                        {item.isDoc ? `${docs.length} documents` : `Section ${listIdx + 1}/${totalSteps}`}
                       </div>
                     </div>
                   </div>
@@ -277,6 +310,7 @@ export default function ValidationPage() {
 
         {/* Section cards */}
         <div>
+          {/* KYC field sections */}
           {validation.sections.map((section) => {
             const stats = sectionStats[section.id] ?? { total: 0, answered: 0, approved: 0, rejected: 0 };
             const allApproved = stats.approved === stats.total && stats.total > 0;
@@ -288,7 +322,6 @@ export default function ValidationPage() {
               <div
                 key={section.id}
                 ref={el => { sectionRefs.current[section.id] = el; }}
-                id={`section-${section.id}`}
                 style={{
                   marginBottom: 24, background: 'var(--ih-bg-card)',
                   border: '1px solid var(--ih-border)', borderRadius: 12,
@@ -377,11 +410,11 @@ export default function ValidationPage() {
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                           <CheckCircleFilled
                             style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }}
-                            onClick={() => setFieldStatus(section.id, index, status === 'approved' ? 'pending' : 'approved')}
+                            onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')}
                           />
                           <CloseCircleFilled
                             style={{ fontSize: 20, color: status === 'rejected' ? '#ef4444' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }}
-                            onClick={() => setFieldStatus(section.id, index, status === 'rejected' ? 'pending' : 'rejected')}
+                            onClick={() => setFieldStatus(key, status === 'rejected' ? 'pending' : 'rejected')}
                           />
                         </div>
                       </div>
@@ -391,6 +424,127 @@ export default function ValidationPage() {
               </div>
             );
           })}
+
+          {/* Documents section */}
+          {docs.length > 0 && (() => {
+            const allDocsApproved = docStats.approved === docStats.total && docStats.total > 0;
+            const docsIconBg = allDocsApproved
+              ? 'linear-gradient(135deg, rgba(203,255,153,0.35), rgba(203,255,153,0.75))'
+              : 'linear-gradient(135deg, rgba(14,42,50,0.07), rgba(14,42,50,0.15))';
+
+            return (
+              <div
+                ref={el => { sectionRefs.current['documents'] = el; }}
+                style={{
+                  marginBottom: 24, background: 'var(--ih-bg-card)',
+                  border: '1px solid var(--ih-border)', borderRadius: 12,
+                  overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                  scrollMarginTop: 32,
+                }}
+              >
+                {/* Section header */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '16px 20px', borderBottom: '1px solid var(--ih-border)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 10, background: docsIconBg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <FolderOutlined style={{ fontSize: 20, color: 'var(--ih-primary)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ih-text-primary)', marginBottom: 4 }}>Documents justificatifs</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ih-text-secondary)' }}>
+                        <span><strong style={{ color: 'var(--ih-text-primary)' }}>{docs.length}</strong> documents</span>
+                        <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} />
+                        <span style={{ color: '#059669' }}><strong>{docStats.approved}</strong> validés</span>
+                        {docStats.rejected > 0 && (
+                          <>
+                            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ih-border)', display: 'inline-block' }} />
+                            <span style={{ color: '#dc2626' }}><strong>{docStats.rejected}</strong> refusés</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <SectionStatusBadge approved={docStats.approved} total={docStats.total} rejected={docStats.rejected} />
+                </div>
+
+                {/* Validate all bar */}
+                {!allDocsApproved && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 20px', background: 'rgba(14,42,50,0.04)',
+                    borderBottom: '1px solid var(--ih-border)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ih-primary)' }}>
+                      <CheckCircleFilled style={{ color: 'var(--ih-primary)' }} />
+                      <span>Vérifier tous les documents de cette section</span>
+                    </div>
+                    <Button
+                      size="small"
+                      onClick={validateAllDocs}
+                      style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', color: '#fff', fontWeight: 600 }}
+                    >
+                      Valider toute la section
+                    </Button>
+                  </div>
+                )}
+
+                {/* Column headers */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '3fr 2fr 2fr 100px',
+                  padding: '8px 20px', background: 'var(--ih-bg)',
+                  borderBottom: '1px solid var(--ih-border)',
+                }}>
+                  {['Document', "Date d'envoi", 'Expiration', 'Vérification'].map((h, i) => (
+                    <span key={h} style={{ fontSize: 12, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: i === 3 ? 'right' : 'left' }}>{h}</span>
+                  ))}
+                </div>
+
+                {/* Document rows */}
+                <div style={{ background: 'var(--ih-bg-card)' }}>
+                  {docs.map((doc, index) => {
+                    const key = `doc-${doc.id}`;
+                    const status = fieldStatuses[key] ?? 'pending';
+                    const isRejected = status === 'rejected';
+                    return (
+                      <div
+                        key={doc.id}
+                        style={{
+                          display: 'grid', gridTemplateColumns: '3fr 2fr 2fr 100px',
+                          padding: '12px 20px',
+                          borderBottom: index < docs.length - 1 ? '1px solid var(--ih-border)' : 'none',
+                          alignItems: 'center', transition: 'background 0.1s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}
+                      >
+                        <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-primary)', fontWeight: 500 }}>{doc.name}</span>
+                        <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>{doc.sentAt}</span>
+                        <span style={{ fontSize: 13, color: doc.expired ? '#dc2626' : 'var(--ih-text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          {doc.expired && <WarningFilled style={{ color: '#f59e0b', fontSize: 13 }} />}
+                          {doc.expiresAt ?? '—'}
+                        </span>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                          <CheckCircleFilled
+                            style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }}
+                            onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')}
+                          />
+                          <CloseCircleFilled
+                            style={{ fontSize: 20, color: status === 'rejected' ? '#ef4444' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }}
+                            onClick={() => setFieldStatus(key, status === 'rejected' ? 'pending' : 'rejected')}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
             <Button

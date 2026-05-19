@@ -69,7 +69,7 @@ export const funds = [
       'Stratégie diversifiée couvrant 12 participations dans les secteurs tech et industrie.',
       'Prochains appels de fonds estimés sur 24 mois, horizon de cession 2028.',
     ],
-    longDescription: 'Fonds Secondaire est un véhicule fermé dont des parts sont proposées à la cession par des investisseurs existants via la plateforme de marché secondaire InvestHub. L\'acheteur reprend l\'engagement non appelé du cédant et bénéficie d\'une exposition immédiate au portefeuille sous-jacent.',
+    longDescription: "Fonds Secondaire est un véhicule fermé dont des parts sont proposées à la cession par des investisseurs existants via la plateforme de marché secondaire InvestHub. L'acheteur reprend l'engagement non appelé du cédant et bénéficie d'une exposition immédiate au portefeuille sous-jacent.",
     shareClasses: [
       { id: 'A', label: 'Part A', shareValue: 118.50, minimumSubscription: 118.50, engagementPerShare: 68.50 },
       { id: 'B', label: 'Part B', shareValue: 118.50, minimumSubscription: 118.50, engagementPerShare: 68.50 },
@@ -134,6 +134,22 @@ export const kycValidations: Record<number, {
       },
     ],
   },
+};
+
+export const kycDocuments: Record<number, {
+  id: string;
+  name: string;
+  sentAt: string;
+  expiresAt: string | null;
+  expired?: boolean;
+}[]> = {
+  6: [
+    { id: 'doc1', name: "Document d'identité valide et complet du souscripteur", sentAt: '19/05/2026 16:10', expiresAt: '01/01/1970', expired: true },
+    { id: 'doc2', name: 'Justificatif de domicile de moins de 3 mois', sentAt: '19/05/2026 16:10', expiresAt: null },
+    { id: 'doc3', name: "Avis d'imposition justifiant de l'origine des fonds et/ou du domicile", sentAt: '19/05/2026 16:10', expiresAt: null },
+    { id: 'doc4', name: "Justificatif d'origine des fonds — Succession / Donation", sentAt: '19/05/2026 16:10', expiresAt: null },
+    { id: 'doc5', name: 'RIB de distribution', sentAt: '19/05/2026 16:10', expiresAt: null },
+  ],
 };
 
 export const portfolioKpis = {
