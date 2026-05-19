@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { Button, Modal, Input, Tag } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled, CheckOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { kycValidations, subscriptions } from '@/data/mock';
 
@@ -9,6 +9,10 @@ type FieldStatus = 'pending' | 'approved' | 'rejected';
 
 function formatEur(value: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+}
+
+function getInitials(name: string): string {
+  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 }
 
 function SectionStatusBadge({ approved, total, rejected }: { approved: number; total: number; rejected: number }) {
@@ -57,6 +61,16 @@ export default function ValidationPage() {
     return stats;
   }, [validation, fieldStatuses]);
 
+  const totalApproved = useMemo(() => {
+    if (!validation) return 0;
+    return validation.sections.reduce((sum, s) => sum + (sectionStats[s.id]?.approved ?? 0), 0);
+  }, [validation, sectionStats]);
+
+  const totalFields = useMemo(() => {
+    if (!validation) return 0;
+    return validation.sections.reduce((sum, s) => sum + s.fields.length, 0);
+  }, [validation]);
+
   if (!validation || !subscription) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
@@ -92,16 +106,121 @@ export default function ValidationPage() {
     router.push(`/subscriptions?persona=${persona}`);
   }
 
+  const progressPct = totalFields > 0 ? Math.round((totalApproved / totalFields) * 100) : 0;
+
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--ih-text-primary)', marginBottom: 8 }}>
-          Validation {id} / {validation.investorName}
-        </h1>
-        <div style={{ fontSize: 14, color: 'var(--ih-text-secondary)' }}>
-          {validation.part} - {formatEur(validation.partValue)} - Frais d&apos;entrée : {formatEur(validation.entryFees)}
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
+
+      {/* Back link */}
+      <button
+        onClick={() => router.push(`/subscriptions?persona=${persona}`)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--ih-text-secondary)',
+          fontSize: 13,
+          fontWeight: 500,
+          padding: '0 0 20px 0',
+          fontFamily: 'inherit',
+        }}
+      >
+        <ArrowLeftOutlined style={{ fontSize: 12 }} />
+        Retour aux souscriptions
+      </button>
+
+      {/* Header card */}
+      <div style={{
+        background: 'var(--ih-bg-card)',
+        border: '1px solid var(--ih-border)',
+        borderRadius: 14,
+        borderLeft: '4px solid var(--ih-accent)',
+        padding: '24px 28px',
+        marginBottom: 32,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      }}>
+        {/* Top row: avatar + info + badge */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 52,
+              height: 52,
+              borderRadius: 12,
+              background: 'var(--ih-primary)',
+              color: 'var(--ih-accent)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 17,
+              fontWeight: 700,
+              flexShrink: 0,
+              letterSpacing: '0.02em',
+            }}>
+              {getInitials(validation.investorName)}
+            </div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ih-text-primary)', lineHeight: 1.2, marginBottom: 4 }}>
+                {validation.investorName}
+              </div>
+              <div style={{ fontSize: 13.5, color: 'var(--ih-text-secondary)' }}>
+                {subscription.fund} · {validation.part}
+              </div>
+            </div>
+          </div>
+          <Tag
+            color="purple"
+            style={{ borderRadius: 20, fontWeight: 600, fontSize: 12.5, padding: '3px 12px', marginTop: 4 }}
+          >
+            Étude du dossier
+          </Tag>
         </div>
+
+        {/* Metrics row */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          {[
+            { label: 'Montant souscrit', value: formatEur(validation.partValue) },
+            { label: "Frais d'entrée", value: formatEur(validation.entryFees) },
+            { label: 'Sections', value: `${validation.sections.length}` },
+            { label: 'Champs validés', value: `${totalApproved} / ${totalFields}` },
+          ].map(m => (
+            <div key={m.label} style={{
+              flex: 1,
+              background: 'var(--ih-bg)',
+              border: '1px solid var(--ih-border)',
+              borderRadius: 10,
+              padding: '10px 14px',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                {m.label}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ih-text-primary)' }}>
+                {m.value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Progress bar */}
+        {totalFields > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 6 }}>
+              <span>Progression de la validation</span>
+              <span style={{ fontWeight: 600, color: 'var(--ih-text-primary)' }}>{progressPct} %</span>
+            </div>
+            <div style={{ height: 6, background: 'var(--ih-border)', borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${progressPct}%`,
+                background: progressPct === 100 ? '#10b981' : 'var(--ih-primary)',
+                borderRadius: 99,
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* KYC Sections */}
@@ -165,7 +284,7 @@ export default function ValidationPage() {
               <SectionStatusBadge approved={stats.approved} total={stats.total} rejected={stats.rejected} />
             </div>
 
-            {/* Validate all bar — hidden once fully approved */}
+            {/* Validate all bar */}
             {!allApproved && (
               <div style={{
                 display: 'flex',
