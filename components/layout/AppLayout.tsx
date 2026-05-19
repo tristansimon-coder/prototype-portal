@@ -1,0 +1,37 @@
+'use client';
+import { Layout } from 'antd';
+import { Sidebar } from './Sidebar';
+
+const { Sider, Content } = Layout;
+
+export function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider
+        width={220}
+        style={{
+          background: 'var(--ih-sidebar-bg)',
+          position: 'fixed',
+          height: '100vh',
+          left: 0,
+          top: 0,
+          zIndex: 100,
+          overflow: 'hidden',
+        }}
+      >
+        <Sidebar />
+      </Sider>
+      <Layout style={{ marginLeft: 220 }}>
+        <Content
+          style={{
+            padding: '32px',
+            minHeight: '100vh',
+            background: 'var(--ih-bg)',
+          }}
+        >
+          {children}
+        </Content>
+      </Layout>
+    </Layout>
+  );
+}
