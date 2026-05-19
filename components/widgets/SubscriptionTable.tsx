@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined, CheckCircleOutlined, AuditOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -25,6 +25,7 @@ interface Subscription {
   navPerShare?: number;
   navDate?: string;
   shares?: number;
+  investor?: string;
 }
 
 interface SubscriptionTableProps {
@@ -63,7 +64,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
   const effectivePrice = salePrice ?? nav ?? 0;
   const effectiveParts = partsCount ?? 1;
   const totalSale = effectivePrice * effectiveParts;
-  // Engagement transféré = proportion des parts vendues × engagement restant total
   const engagementTransferred = totalShares && totalShares > 0
     ? (remainingEngagement / totalShares) * effectiveParts
     : remainingEngagement;
@@ -106,7 +106,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 8 }}>
 
-        {/* Montant appelé et payé — fonds à appel uniquement */}
         {isCallFund && (
           <Field label="Montant appelé et payé">
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -120,7 +119,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           </Field>
         )}
 
-        {/* Valeur actuelle d'une part */}
         {nav && (
           <Field label={`Valeur actuelle d'une part ${formatEur(nav)}`}>
             <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>
@@ -129,7 +127,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           </Field>
         )}
 
-        {/* Prix de vente souhaité */}
         <Field label="Prix de vente souhaité (par part) :">
           {minPrice && maxPrice && (
             <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
@@ -148,7 +145,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           />
         </Field>
 
-        {/* Nombre de parts */}
         <Field label="Nombre de parts que vous souhaitez vendre :">
           <InputNumber
             style={{ width: '100%' }}
@@ -159,12 +155,10 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           />
         </Field>
 
-        {/* Date de validité */}
         <Field label="Date de fin de validité de l'offre :">
           <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="JJ/MM/AAAA" />
         </Field>
 
-        {/* RIB */}
         <Field label="RIB du vendeur :">
           <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
             Document bancaire pour la transmission des fonds suite à la cession (PDF, JPG…)
@@ -181,7 +175,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           </Upload>
         </Field>
 
-        {/* Avertissement engagement — fonds à appel avec engagement restant */}
         {isCallFund && engagementTransferred > 0 && (
           <div style={{ fontSize: 13, color: 'var(--ih-text-primary)' }}>
             ⚠ Attention : en vendant ces parts, l&apos;acheteur reprend aussi votre engagement futur de{' '}
@@ -194,7 +187,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           </div>
         )}
 
-        {/* Totaux */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>
             Montant total de la vente : {formatEur(totalSale)}
@@ -206,7 +198,6 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
           )}
         </div>
 
-        {/* CTA */}
         <div style={{ borderTop: '1px solid var(--ih-border)', paddingTop: 16 }}>
           <Button
             type="primary"
@@ -348,6 +339,8 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const persona = searchParams.get('persona') ?? 'lp';
+  const isDistributor = persona === 'distributor';
 
   const modalType = searchParams.get('modal');
   const modalId = searchParams.get('id') ? Number(searchParams.get('id')) : null;
@@ -369,7 +362,6 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
     router.replace(`${pathname}?${params.toString()}`);
   }
 
-  // keep backward compat aliases
   const openSell = (r: Subscription) => openModal('sell', r);
   const closeSell = closeModal;
 
@@ -395,7 +387,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
     distributed: filtered.reduce((s, d) => s + d.distributed, 0),
   }), [filtered]);
 
-  const columns: ColumnsType<Subscription> = [
+  const baseColumns: ColumnsType<Subscription> = [
     {
       title: 'Type',
       key: 'type',
@@ -408,6 +400,16 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         </div>
       ),
     },
+    ...(isDistributor ? [{
+      title: 'Investisseur',
+      key: 'investor',
+      sorter: (a: Subscription, b: Subscription) => (a.investor ?? '').localeCompare(b.investor ?? ''),
+      render: (_: unknown, record: Subscription) => (
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ih-text-primary)', whiteSpace: 'nowrap' }}>
+          {record.investor ?? '—'}
+        </span>
+      ),
+    }] : []),
     {
       title: 'Fonds',
       key: 'fund',
@@ -416,6 +418,24 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         <div>
           <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ih-text-primary)' }}>{record.fund}</div>
           {record.part && <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>{record.part}</div>}
+          {record.status === 'study' && (
+            <span
+              onClick={() => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                marginTop: 5,
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                color: '#92400e',
+                background: 'rgba(251,191,36,0.2)',
+                border: '1px solid rgba(245,158,11,0.5)',
+                borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap',
+                letterSpacing: '0.01em',
+              }}
+            >
+              <AuditOutlined style={{ fontSize: 10 }} />
+              Validation requise
+            </span>
+          )}
         </div>
       ),
     },
@@ -459,7 +479,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
       title: 'Statut',
       dataIndex: 'status',
       key: 'status',
-      render: v => <StatusBadge status={v} />,
+      render: (v) => <StatusBadge status={v} />,
     },
     {
       title: 'Actions',
@@ -474,13 +494,27 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
           ...(hasRedemptions ? [{ key: 'redemption-history', label: 'Historique des rachats', icon: <HistoryOutlined />, onClick: () => openModal('redemption-history', record) }] : []),
           { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
         ];
+        const studyItems: MenuProps['items'] = [
+          {
+            key: 'validate',
+            label: 'Valider le dossier',
+            icon: <CheckCircleOutlined />,
+            onClick: () => router.push(`/subscriptions/${record.id}/validation?persona=${persona}`),
+          },
+          { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
+        ];
         const otherItems: MenuProps['items'] = [
           { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
           { key: 'edit', label: 'Modifier', icon: <EditOutlined /> },
           { key: 'delete', label: 'Supprimer', icon: <DeleteOutlined />, danger: true },
         ];
+        const items = record.status === 'valid'
+          ? validItems
+          : record.status === 'study'
+            ? studyItems
+            : otherItems;
         return (
-          <Dropdown menu={{ items: record.status === 'valid' ? validItems : otherItems }} trigger={['click']} placement="bottomRight">
+          <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
             <Button type="text" icon={<MoreOutlined />} size="small" />
           </Dropdown>
         );
@@ -488,9 +522,14 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
     },
   ];
 
+  const summaryColSpanLabel = isDistributor ? 4 : 3;
+  const summaryIndexAmount = isDistributor ? 4 : 3;
+  const summaryIndexCalled = isDistributor ? 5 : 4;
+  const summaryIndexDistributed = isDistributor ? 6 : 5;
+  const summaryIndexTrailer = isDistributor ? 7 : 6;
+
   return (
     <div>
-      {/* Filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <Select
           placeholder="Tous les fonds"
@@ -517,6 +556,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
           options={[
             { value: 'to_sign', label: 'À envoyer en signature' },
             { value: 'in_progress', label: 'En cours' },
+            { value: 'study', label: 'Étude du dossier' },
             { value: 'valid', label: 'Valide' },
           ]}
         />
@@ -530,26 +570,31 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
       <ConfigProvider theme={{ token: { colorFillAlter: '#ffffff' } }}>
         <Table
           dataSource={filtered}
-          columns={columns}
+          columns={baseColumns}
           rowKey="id"
           pagination={{ pageSize: 10, showSizeChanger: false, showTotal: (total) => `${total} souscription${total > 1 ? 's' : ''}` }}
           size="middle"
           style={{ borderRadius: 12, overflow: 'hidden', background: '#fff' }}
+          onRow={(record) => ({
+            style: record.status === 'study'
+              ? { background: 'rgba(251,191,36,0.05)', borderLeft: '3px solid #f59e0b' }
+              : {},
+          })}
           summary={() => (
             <Table.Summary.Row style={{ background: '#fff', fontWeight: 600 }}>
-              <Table.Summary.Cell index={0} colSpan={3}>
+              <Table.Summary.Cell index={0} colSpan={summaryColSpanLabel}>
                 <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>Total</span>
               </Table.Summary.Cell>
-              <Table.Summary.Cell index={3} align="right">
+              <Table.Summary.Cell index={summaryIndexAmount} align="right">
                 <span style={{ fontWeight: 700 }}>{formatEur(totals.amount)}</span>
               </Table.Summary.Cell>
-              <Table.Summary.Cell index={4} align="right">
+              <Table.Summary.Cell index={summaryIndexCalled} align="right">
                 <span>{formatEur(totals.called)}</span>
               </Table.Summary.Cell>
-              <Table.Summary.Cell index={5} align="right">
+              <Table.Summary.Cell index={summaryIndexDistributed} align="right">
                 <span>{formatEur(totals.distributed)}</span>
               </Table.Summary.Cell>
-              <Table.Summary.Cell index={6} colSpan={3} />
+              <Table.Summary.Cell index={summaryIndexTrailer} colSpan={3} />
             </Table.Summary.Row>
           )}
         />
