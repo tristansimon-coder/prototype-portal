@@ -21,6 +21,7 @@
 body {
   background: var(--ih-bg);
   font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
   color: var(--ih-text-primary);
   margin: 0;
 }

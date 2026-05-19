@@ -10,5 +10,6 @@ export const investHubTheme: ThemeConfig = {
     colorInfo: '#1677ff',
     borderRadius: 8,
     fontFamily: "'DM Sans', sans-serif",
+    fontSize: 14,
   },
 };
