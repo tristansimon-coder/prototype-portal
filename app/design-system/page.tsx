@@ -267,11 +267,13 @@ export function FundCard({ name, closeDate, image, description, docs }) {
     </Card>
   );
 }`}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 40 }}>
-              <FundCard {...funds[0]} />
-              <FundCard {...funds[2]} />
-              <FundCard {...funds[3]} />
-            </div>
+            <Suspense fallback={null}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 40 }}>
+                <FundCard {...funds[0]} detailHref={`/funds/${funds[0].id}`} />
+                <FundCard {...funds[2]} detailHref={`/funds/${funds[2].id}`} />
+                <FundCard {...funds[3]} detailHref={`/funds/${funds[3].id}`} />
+              </div>
+            </Suspense>
           </WidgetWrapper>
 
           <WidgetWrapper title="SecondaryMarketCard" codeSource={`export function SecondaryMarketCard({ fund, part, shares, price, validUntil }) {

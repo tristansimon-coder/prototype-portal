@@ -1,7 +1,8 @@
 'use client';
+import { Suspense } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { KpiCard } from '@/components/widgets/KpiCard';
-import { FundCard } from '@/components/widgets/FundCard';
+import { FundCardGrid } from '@/components/widgets/FundCardGrid';
 import { PerformanceChart } from '@/components/widgets/PerformanceChart';
 import { WidgetWrapper } from '@/components/widgets/WidgetWrapper';
 import { portfolioKpis, funds, documents, navPerformance } from '@/data/mock';
@@ -31,10 +32,10 @@ export default function HomePage() {
       <div style={{ marginBottom: 32 }}>
         <Typography.Title level={4} style={{ marginBottom: 16 }}>Fonds en vedette</Typography.Title>
         <WidgetWrapper title="FundCard" codeSource={FUND_CARD_CODE}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, paddingTop: 40 }}>
-            {featuredFunds.map(fund => (
-              <FundCard key={fund.id} {...fund} />
-            ))}
+          <div style={{ paddingTop: 40 }}>
+            <Suspense fallback={null}>
+              <FundCardGrid funds={featuredFunds} columns={3} />
+            </Suspense>
           </div>
         </WidgetWrapper>
       </div>
@@ -58,9 +59,7 @@ export default function HomePage() {
           renderItem={doc => (
             <List.Item
               style={{ padding: '10px 0' }}
-              extra={
-                doc.isNew && <Tag color="green" style={{ borderRadius: 12 }}>New</Tag>
-              }
+              extra={doc.isNew && <Tag color="green" style={{ borderRadius: 12 }}>New</Tag>}
             >
               <List.Item.Meta
                 avatar={<DocumentIcon size={22} />}

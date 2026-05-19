@@ -2,7 +2,6 @@
 import { Button, Card, Tag } from 'antd';
 import { CalendarOutlined, DownloadOutlined, PictureOutlined } from '@ant-design/icons';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 
 interface FundCardProps {
   id: number;
@@ -11,12 +10,12 @@ interface FundCardProps {
   image: string | null;
   description: string[];
   docs?: string[];
+  detailHref?: string;
 }
 
-export function FundCard({ id, name, closeDate, image, description, docs }: FundCardProps) {
-  const searchParams = useSearchParams();
-  const persona = searchParams.get('persona') ?? 'lp';
-  const detailHref = `/funds/${id}?persona=${persona}`;
+export function FundCard({ id, name, closeDate, image, description, docs, detailHref }: FundCardProps) {
+  const href = detailHref ?? `/funds/${id}`;
+
   return (
     <Card
       style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--ih-border)', height: '100%', display: 'flex', flexDirection: 'column' }}
@@ -63,7 +62,7 @@ export function FundCard({ id, name, closeDate, image, description, docs }: Fund
       </div>
 
       {/* CTA — full-width bar */}
-      <Link href={detailHref} style={{ textDecoration: 'none' }}>
+      <Link href={href} style={{ textDecoration: 'none' }}>
         <div
           style={{
             background: 'var(--ih-primary)',
