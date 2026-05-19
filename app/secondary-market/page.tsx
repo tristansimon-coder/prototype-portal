@@ -182,10 +182,8 @@ function DetailsDrawer({ offer, open, onClose, onBuy }: { offer: Offer | null; o
       title={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{offer.fund} — {offer.part}</div>
-            <Tag color={isCall ? 'blue' : 'green'} style={{ fontSize: 11, marginTop: 4 }}>
-              {isCall ? 'Fonds à appel' : 'Paiement direct'}
-            </Tag>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Offre de cession</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ih-text-primary)' }}>{offer.fund} · {offer.part}</div>
           </div>
           <Button type="text" size="small" icon={<CodeOutlined />} onClick={() => setCodeOpen(true)} style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}>
             Code
@@ -202,16 +200,29 @@ function DetailsDrawer({ offer, open, onClose, onBuy }: { offer: Offer | null; o
         </div>
       }
     >
-      {offer.image && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={offer.image} alt={offer.fund} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 20 }} />
-      )}
+      {/* Offer summary header */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '14px 16px', background: 'var(--ih-bg)', borderRadius: 10, marginBottom: 24, border: '1px solid var(--ih-border)' }}>
+        {offer.image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={offer.image} alt={offer.fund} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ih-text-primary)', marginBottom: 6 }}>{offer.fund} — {offer.part}</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <Tag color={isCall ? 'blue' : 'green'} style={{ fontSize: 11, margin: 0 }}>
+              {isCall ? 'Fonds à appel' : 'Paiement direct'}
+            </Tag>
+            <Tag color="default" style={{ fontSize: 11, margin: 0 }}>Validité : {offer.validUntil}</Tag>
+          </div>
+        </div>
+      </div>
 
-      <Divider orientation="left" style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>Informations sur l&apos;offre</Divider>
+      {/* Section 1 — Valeur du sous-jacent */}
+      <Divider orientation="left" style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginTop: 0 }}>Valeur du sous-jacent</Divider>
 
-      <Row label="Nombre de parts" value={offer.shares.toLocaleString('fr-FR')} />
+      <Row label="Nombre de parts cédées" value={offer.shares.toLocaleString('fr-FR')} />
       {offer.navPerShare && (
-        <Row label={`Valeur par part${offer.navDate ? ` (${offer.navDate})` : ''}`} value={eur(offer.navPerShare)} highlight />
+        <Row label={`VL par part${offer.navDate ? ` (${offer.navDate})` : ''}`} value={eur(offer.navPerShare)} highlight />
       )}
       {totalValue && <Row label="Valeur totale à date" value={eur(totalValue)} highlight />}
 
@@ -227,7 +238,10 @@ function DetailsDrawer({ offer, open, onClose, onBuy }: { offer: Offer | null; o
         </div>
       )}
 
-      <Row label="Prix par part (cession)" value={eur(offer.price)} />
+      {/* Section 2 — Conditions de l'offre */}
+      <Divider orientation="left" style={{ fontSize: 12, color: 'var(--ih-text-secondary)' }}>Conditions de l&apos;offre</Divider>
+
+      <Row label="Prix de cession par part" value={eur(offer.price)} />
       <Row label="Montant total à payer" value={eur(totalToPay)} highlight />
       {isCall && totalEngagement !== null && (
         <Row label="Engagement restant à reprendre" value={eur(totalEngagement)} warning />
@@ -235,7 +249,6 @@ function DetailsDrawer({ offer, open, onClose, onBuy }: { offer: Offer | null; o
       {isCall && totalExposure !== null && (
         <Row label="Exposition économique totale" value={eur(totalExposure)} />
       )}
-      <Row label="Offre valable jusqu'au" value={offer.validUntil} />
 
       {isCall && totalEngagement !== null && (
         <div style={{ marginTop: 16, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
