@@ -1,9 +1,12 @@
 'use client';
 import { Suspense, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Button, Tag, InputNumber, Select } from 'antd';
-import { CalendarOutlined, ArrowLeftOutlined, DownloadOutlined, PictureOutlined, SwapOutlined } from '@ant-design/icons';
+import { Button, Tag, InputNumber, Select, Drawer } from 'antd';
+import { CalendarOutlined, ArrowLeftOutlined, DownloadOutlined, PictureOutlined, SwapOutlined, CodeOutlined } from '@ant-design/icons';
 import { funds, secondaryMarket } from '@/data/mock';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { FUND_DETAIL_PAGE_CODE } from '@/lib/code-sources';
 
 const MOCK_INVESTORS = [
   { value: 'inv-1', label: 'Martin Dupont' },
@@ -31,6 +34,7 @@ function FundDetailInner() {
   const [amount, setAmount] = useState<number | null>(null);
   // sharesInput unused — secondary market offers are fixed-quantity
   const [investor, setInvestor] = useState<string | null>(null);
+  const [codeOpen, setCodeOpen] = useState(false);
 
   if (!fund) {
     return <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--ih-text-secondary)' }}>Fonds introuvable.</div>;
@@ -46,13 +50,19 @@ function FundDetailInner() {
 
   return (
     <div>
-      {/* Back */}
-      <button
-        onClick={() => router.back()}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ih-text-secondary)', fontSize: 14, marginBottom: 28, padding: 0 }}
-      >
-        <ArrowLeftOutlined /> Retour
-      </button>
+      {/* Back + Code */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+        <button
+          onClick={() => router.back()}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ih-text-secondary)', fontSize: 14, padding: 0 }}
+        >
+          <ArrowLeftOutlined /> Retour
+        </button>
+        <Button type="text" size="small" icon={<CodeOutlined />} onClick={() => setCodeOpen(true)}
+          style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}>
+          Code
+        </Button>
+      </div>
 
       {/* Main layout: image left, panel right */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 52, alignItems: 'start' }}>
@@ -345,6 +355,12 @@ function FundDetailInner() {
         </div>
         )}
       </div>
+
+      <Drawer open={codeOpen} onClose={() => setCodeOpen(false)} title="Code — FundDetailPage" width={720}>
+        <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
+          {FUND_DETAIL_PAGE_CODE}
+        </SyntaxHighlighter>
+      </Drawer>
     </div>
   );
 }

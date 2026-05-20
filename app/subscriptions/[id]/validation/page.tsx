@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button, Modal, Input, Tag, Tooltip, Upload, Drawer } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined, FolderOutlined, WarningFilled, DownloadOutlined, MessageOutlined, UploadOutlined, CodeOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined, FolderOutlined, WarningFilled, DownloadOutlined, MessageOutlined, UploadOutlined, CodeOutlined, LinkOutlined } from '@ant-design/icons';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { kycValidations, kycDocuments, subscriptions } from '@/data/mock';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -38,6 +38,7 @@ export default function ValidationPage() {
   const [reopenMessage, setReopenMessage] = useState('');
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [codeOpen, setCodeOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
   const [docComments, setDocComments] = useState<Record<string, string>>({});
@@ -183,15 +184,30 @@ export default function ValidationPage() {
           <ArrowLeftOutlined style={{ fontSize: 12 }} />
           Retour aux souscriptions
         </button>
-        <Button
-          type="text"
-          size="small"
-          icon={<CodeOutlined />}
-          onClick={() => setCodeOpen(true)}
-          style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}
-        >
-          Code
-        </Button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Button
+            type="text"
+            size="small"
+            icon={<LinkOutlined />}
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              setLinkCopied(true);
+              setTimeout(() => setLinkCopied(false), 2000);
+            }}
+            style={{ color: linkCopied ? '#059669' : 'var(--ih-text-secondary)', fontSize: 12 }}
+          >
+            {linkCopied ? 'Lien copié !' : 'Copier le lien'}
+          </Button>
+          <Button
+            type="text"
+            size="small"
+            icon={<CodeOutlined />}
+            onClick={() => setCodeOpen(true)}
+            style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}
+          >
+            Code
+          </Button>
+        </div>
       </div>
 
       {/* Header card */}

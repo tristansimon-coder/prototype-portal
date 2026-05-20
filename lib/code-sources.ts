@@ -835,6 +835,107 @@ export function DetailsDrawer({ offer, open, onClose, onBuy }) {
 }
 `;
 
+export const FUND_DETAIL_PAGE_CODE = `'use client';
+// Page de détail d'un fonds — accessible via /funds/[id]?persona={lp|distributor}
+// Affiche une vue split : image/description à gauche, panneau de souscription à droite.
+// Supporte deux modes : souscription standard et achat d'offre secondaire (via ?offerId=).
+
+import { Suspense, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { Button, Tag, InputNumber, Select, Drawer } from 'antd';
+import { CalendarOutlined, ArrowLeftOutlined, DownloadOutlined, PictureOutlined, SwapOutlined, CodeOutlined } from '@ant-design/icons';
+import { funds, secondaryMarket } from '@/data/mock';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { FUND_DETAIL_PAGE_CODE } from '@/lib/code-sources';
+
+// Sélecteur investisseur (mode distributeur)
+const MOCK_INVESTORS = [
+  { value: 'inv-1', label: 'Investisseur A' },
+  { value: 'inv-2', label: 'Investisseur B' },
+];
+
+function FundDetailInner() {
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const persona = searchParams.get('persona') ?? 'lp';
+  const isDistributor = persona === 'distributor';
+
+  const offerId = searchParams.get('offerId') ? Number(searchParams.get('offerId')) : null;
+  const secondaryOffer = offerId ? (secondaryMarket.find(s => s.id === offerId) ?? null) : null;
+  const fund = funds.find(f => f.id === Number(params.id));
+
+  const [selectedClass, setSelectedClass] = useState(fund?.shareClasses[0]?.id ?? 'A');
+  const [amount, setAmount] = useState<number | null>(null);
+  const [investor, setInvestor] = useState<string | null>(null);
+  const [codeOpen, setCodeOpen] = useState(false);
+
+  if (!fund) return <div>Fonds introuvable.</div>;
+
+  const currentClass = fund.shareClasses.find(c => c.id === selectedClass) ?? fund.shareClasses[0];
+  const minimum = currentClass?.minimumSubscription ?? 0;
+  const canSubscribe = amount !== null && amount >= minimum && (!isDistributor || investor !== null);
+
+  return (
+    <div>
+      {/* Navigation */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ih-text-secondary)', fontSize: 14, padding: 0 }}>
+          <ArrowLeftOutlined /> Retour
+        </button>
+        <Button type="text" size="small" icon={<CodeOutlined />} onClick={() => setCodeOpen(true)}
+          style={{ color: 'var(--ih-text-secondary)', fontSize: 12 }}>
+          Code
+        </Button>
+      </div>
+
+      {/* Layout split */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 52, alignItems: 'start' }}>
+
+        {/* Gauche : image + description */}
+        <div>
+          <div style={{ borderRadius: 12, overflow: 'hidden', height: 420, background: '#E5E7EB', marginBottom: 40 }}>
+            {fund.image
+              ? <img src={fund.image} alt={fund.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg, #0E2A32, #1a4050)' }}>
+                  <PictureOutlined style={{ fontSize: 64, color: 'rgba(255,255,255,0.3)' }} />
+                </div>
+            }
+          </div>
+          {fund.longDescription && (
+            <p style={{ color: 'var(--ih-text-secondary)', lineHeight: 1.85 }}>{fund.longDescription}</p>
+          )}
+        </div>
+
+        {/* Droite : panneau souscription ou offre secondaire */}
+        {secondaryOffer ? (
+          <SecondaryPanel offer={secondaryOffer} isDistributor={isDistributor} investor={investor} setInvestor={setInvestor} />
+        ) : (
+          <SubscriptionPanel
+            fund={fund} selectedClass={selectedClass} setSelectedClass={setSelectedClass}
+            amount={amount} setAmount={setAmount} minimum={minimum}
+            investor={investor} setInvestor={setInvestor}
+            isDistributor={isDistributor} canSubscribe={canSubscribe}
+          />
+        )}
+      </div>
+
+      {/* Drawer Show Code */}
+      <Drawer open={codeOpen} onClose={() => setCodeOpen(false)} title="Code — FundDetailPage" width={720}>
+        <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
+          {FUND_DETAIL_PAGE_CODE}
+        </SyntaxHighlighter>
+      </Drawer>
+    </div>
+  );
+}
+
+export default function FundDetailPage() {
+  return <Suspense fallback={null}><FundDetailInner /></Suspense>;
+}
+`;
+
 export const PERFORMANCE_CHART_CODE = `'use client';
 import { useMemo } from 'react';
 import { LinePath } from '@visx/shape';
