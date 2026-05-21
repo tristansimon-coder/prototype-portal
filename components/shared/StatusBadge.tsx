@@ -5,6 +5,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   in_progress: { label: 'Souscription en cours', color: 'processing' },
   study: { label: 'Étude du dossier', color: 'purple' },
   valid: { label: 'Valide', color: 'success' },
+  sale_to_validate: { label: 'Mise en vente proposée', color: 'warning' },
   rejected: { label: 'Refusée', color: 'error' },
   draft: { label: 'Brouillon', color: 'default' },
 };

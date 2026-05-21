@@ -85,6 +85,7 @@ export const subscriptions = [
   { id: 4, fund: 'Flex II', part: null, date: '03/02/2025', amount: 100, called: 100, distributed: 0, valuation: null, status: 'valid', fundType: 'direct' as const, navPerShare: 105.50, navDate: '30/04/2026', shares: 1, investor: 'Paul Moreau' },
   { id: 5, fund: 'Flex II', part: 'A1', date: '09/07/2025', amount: 250000, called: 0, distributed: 0, valuation: null, status: 'in_progress', fundType: 'direct' as const, investor: 'Claire Fontaine' },
   { id: 6, fund: 'Impact Growth II', part: 'Part A', date: '12/04/2026', amount: 50000, called: 0, distributed: 0, valuation: null, status: 'study', fundType: 'call' as const, investor: 'Jean-Pierre Durand' },
+  { id: 7, fund: 'Flex II', part: 'Part B', date: '03/03/2025', amount: 75000, called: 75000, distributed: 3200, valuation: 81500, status: 'sale_to_validate', fundType: 'direct' as const, navPerShare: 105.50, navDate: '30/04/2026', shares: 15, investor: 'Marie Dupont', bankHolder: 'Marie Dupont', bankIban: 'FR76 3000 6000 0112 3456 7890 189', bankBic: 'BNPAFRPP', proposedPrice: 102.00, proposedShares: 10, proposedValidUntil: '30/06/2026' },
 ];
 
 export const kycValidations: Record<number, {

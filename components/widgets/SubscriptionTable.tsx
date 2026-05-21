@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer } from 'antd';
+import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer, Input } from 'antd';
 import type { MenuProps } from 'antd';
 import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined, CheckCircleOutlined, AuditOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -26,6 +26,12 @@ interface Subscription {
   navDate?: string;
   shares?: number;
   investor?: string;
+  bankHolder?: string;
+  bankIban?: string;
+  bankBic?: string;
+  proposedPrice?: number;
+  proposedShares?: number;
+  proposedValidUntil?: string;
 }
 
 interface SubscriptionTableProps {
@@ -50,6 +56,9 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
   const [salePrice, setSalePrice] = useState<number | null>(null);
   const [partsCount, setPartsCount] = useState<number | null>(null);
   const [ribFile, setRibFile] = useState<File | null>(null);
+  const [iban, setIban] = useState('');
+  const [bic, setBic] = useState('');
+  const [titulaire, setTitulaire] = useState('');
   const [codeOpen, setCodeOpen] = useState(false);
 
   if (!subscription) return null;
@@ -73,6 +82,9 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
     setSalePrice(null);
     setPartsCount(null);
     setRibFile(null);
+    setIban('');
+    setBic('');
+    setTitulaire('');
   }
 
   return (
@@ -158,6 +170,33 @@ function SellModal({ subscription, open, onClose, onCopyLink }: { subscription: 
         <Field label="Date de fin de validité de l'offre :">
           <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="JJ/MM/AAAA" />
         </Field>
+
+        <div style={{ borderTop: '1px solid var(--ih-border)', paddingTop: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)', marginBottom: 12 }}>Coordonnées bancaires du vendeur</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Field label="IBAN :">
+              <Input
+                value={iban}
+                onChange={e => setIban(e.target.value)}
+                placeholder="FR76 3000 6000 0112 3456 7890 189"
+              />
+            </Field>
+            <Field label="BIC / SWIFT :">
+              <Input
+                value={bic}
+                onChange={e => setBic(e.target.value)}
+                placeholder="BNPAFRPP"
+              />
+            </Field>
+            <Field label="Titulaire du compte :">
+              <Input
+                value={titulaire}
+                onChange={e => setTitulaire(e.target.value)}
+                placeholder="Nom complet du titulaire"
+              />
+            </Field>
+          </div>
+        </div>
 
         <Field label="RIB du vendeur :">
           <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>
@@ -330,6 +369,88 @@ function RedemptionHistoryModal({ open, onClose, subscription }: { open: boolean
   );
 }
 
+function SaleValidationModal({ open, onClose, subscription }: { open: boolean; onClose: () => void; subscription: Subscription | null }) {
+  if (!subscription) return null;
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      title="Votre CGP vous propose de mettre en vente vos parts"
+      width={560}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingTop: 8 }}>
+        <div style={{ background: 'var(--ih-bg)', border: '1px solid var(--ih-border)', borderRadius: 8, padding: '14px 16px' }}>
+          <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)', marginBottom: 10 }}>Détails de la proposition</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--ih-text-secondary)' }}>Fonds</span>
+              <span style={{ fontWeight: 600 }}>{subscription.fund}{subscription.part ? ` — ${subscription.part}` : ''}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--ih-text-secondary)' }}>Nombre de parts proposées</span>
+              <span style={{ fontWeight: 600 }}>{subscription.proposedShares ?? '—'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--ih-text-secondary)' }}>Prix de vente proposé (par part)</span>
+              <span style={{ fontWeight: 600 }}>{formatEur(subscription.proposedPrice ?? null)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--ih-text-secondary)' }}>Validité de l&apos;offre</span>
+              <span style={{ fontWeight: 600 }}>{subscription.proposedValidUntil ?? '—'}</span>
+            </div>
+            {subscription.proposedPrice && subscription.proposedShares && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--ih-border)', paddingTop: 6, marginTop: 2 }}>
+                <span style={{ color: 'var(--ih-text-secondary)' }}>Montant total estimé</span>
+                <span style={{ fontWeight: 700, color: 'var(--ih-primary)' }}>{formatEur(subscription.proposedPrice * subscription.proposedShares)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, padding: '12px 16px', fontSize: 12, color: '#92400e', lineHeight: 1.7 }}>
+          <strong>Conditions de la cession :</strong> En validant cette proposition, vous autorisez votre conseiller à procéder à la mise en vente de vos parts sur le marché secondaire. La cession sera effective à la conclusion d&apos;une transaction avec un acheteur tiers. Vous pourrez annuler votre accord jusqu&apos;à la signature du bulletin de cession.
+        </div>
+
+        {(subscription.bankIban || subscription.bankBic || subscription.bankHolder) && (
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ih-text-primary)', marginBottom: 10 }}>Coordonnées bancaires pour le règlement</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+              {subscription.bankHolder && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--ih-text-secondary)' }}>Titulaire</span>
+                  <span style={{ fontWeight: 600 }}>{subscription.bankHolder}</span>
+                </div>
+              )}
+              {subscription.bankIban && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--ih-text-secondary)' }}>IBAN</span>
+                  <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{subscription.bankIban}</span>
+                </div>
+              )}
+              {subscription.bankBic && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--ih-text-secondary)' }}>BIC / SWIFT</span>
+                  <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{subscription.bankBic}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--ih-border)', paddingTop: 16 }}>
+          <Button type="primary" style={{ width: '100%' }} onClick={onClose}>
+            Valider la mise en vente
+          </Button>
+          <Button style={{ width: '100%' }} onClick={onClose}>
+            Refuser
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const [fundFilter, setFundFilter] = useState<string | undefined>(undefined);
   const [partFilter, setPartFilter] = useState<string | undefined>(undefined);
@@ -347,6 +468,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const sellTarget = modalType === 'sell' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
   const redeemTarget = modalType === 'redeem' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
   const historyTarget = modalType === 'redemption-history' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
+  const saleValidationTarget = modalType === 'sale-validation' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
 
   function openModal(type: string, record: Subscription) {
     const params = new URLSearchParams(searchParams.toString());
@@ -481,6 +603,23 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
               Validation requise
             </span>
           )}
+          {!isDistributor && v === 'sale_to_validate' && (
+            <span
+              onClick={() => openModal('sale-validation', record)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                color: '#92400e',
+                background: 'rgba(251,191,36,0.2)',
+                border: '1px solid rgba(245,158,11,0.5)',
+                borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap',
+                letterSpacing: '0.01em',
+              }}
+            >
+              <AuditOutlined style={{ fontSize: 10 }} />
+              Validation requise
+            </span>
+          )}
         </div>
       ),
     },
@@ -511,11 +650,17 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
           { key: 'edit', label: 'Modifier', icon: <EditOutlined /> },
           { key: 'delete', label: 'Supprimer', icon: <DeleteOutlined />, danger: true },
         ];
+        const saleValidateItems: MenuProps['items'] = [
+          { key: 'sale-validation', label: 'Valider la mise en vente', icon: <CheckCircleOutlined />, onClick: () => openModal('sale-validation', record) },
+          { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
+        ];
         const items = record.status === 'valid'
           ? validItems
           : (isDistributor && record.status === 'study')
             ? studyItems
-            : otherItems;
+            : (!isDistributor && record.status === 'sale_to_validate')
+              ? saleValidateItems
+              : otherItems;
         return (
           <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
             <Button type="text" icon={<MoreOutlined />} size="small" />
@@ -561,6 +706,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
             { value: 'in_progress', label: 'En cours' },
             { value: 'study', label: 'Étude du dossier' },
             { value: 'valid', label: 'Valide' },
+            { value: 'sale_to_validate', label: 'Mise en vente proposée' },
           ]}
         />
         <div style={{ marginLeft: 'auto' }}>
@@ -619,6 +765,11 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         open={historyTarget !== null}
         onClose={closeModal}
         subscription={historyTarget}
+      />
+      <SaleValidationModal
+        open={saleValidationTarget !== null}
+        onClose={closeModal}
+        subscription={saleValidationTarget}
       />
     </div>
   );
