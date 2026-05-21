@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Button, Modal, Input, Tag, Tooltip, Upload, Drawer } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined, FolderOutlined, WarningFilled, DownloadOutlined, MessageOutlined, UploadOutlined, CodeOutlined, LinkOutlined } from '@ant-design/icons';
+import { Button, Modal, Input, Tag, Upload, Drawer } from 'antd';
+import { CheckCircleFilled, CloseCircleFilled, CheckOutlined, ArrowLeftOutlined, FileTextOutlined, FolderOutlined, WarningFilled, DownloadOutlined, UploadOutlined, CodeOutlined, LinkOutlined } from '@ant-design/icons';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { kycValidations, kycDocuments, subscriptions } from '@/data/mock';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -54,9 +54,6 @@ export default function ValidationPage() {
   const [codeOpen, setCodeOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [commentTarget, setCommentTarget] = useState<string | null>(null);
-  const [docComments, setDocComments] = useState<Record<string, string>>({});
-  const [commentDraft, setCommentDraft] = useState('');
   const [replacedDocs, setReplacedDocs] = useState<Record<string, string>>({});
 
   const sectionStats = useMemo(() => {
@@ -191,16 +188,6 @@ export default function ValidationPage() {
     setFieldRejectReasons(prev => ({ ...prev, ...reopenReasonDrafts }));
     setReopenOpen(false);
     router.push(`/subscriptions?persona=${persona}`);
-  }
-
-  function openComment(docId: string) {
-    setCommentTarget(docId);
-    setCommentDraft(docComments[docId] ?? '');
-  }
-
-  function saveComment() {
-    if (commentTarget) setDocComments(prev => ({ ...prev, [commentTarget]: commentDraft }));
-    setCommentTarget(null);
   }
 
   function getStepState(sectionId: string, idx: number): 'completed' | 'current' | 'upcoming' {
@@ -454,7 +441,6 @@ export default function ValidationPage() {
                     const key = `doc-${doc.id}`;
                     const status = fieldStatuses[key] ?? 'pending';
                     const isRejected = status === 'rejected';
-                    const hasComment = !!docComments[doc.id];
                     const replacedName = replacedDocs[doc.id];
                     const isLast = index === docs.length - 1;
                     return (
@@ -483,9 +469,6 @@ export default function ValidationPage() {
                             </Upload>
                           </div>
                           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-                            <Tooltip title={hasComment ? docComments[doc.id] : 'Ajouter un commentaire'}>
-                              <MessageOutlined style={{ fontSize: 17, color: hasComment ? 'var(--ih-primary)' : '#d1d5db', cursor: 'pointer' }} onClick={() => openComment(doc.id)} />
-                            </Tooltip>
                             <CheckCircleFilled style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')} />
                             <CloseCircleFilled style={{ fontSize: 20, color: isRejected ? '#ef4444' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => toggleReject(key)} />
                           </div>
@@ -563,18 +546,6 @@ export default function ValidationPage() {
               </Button>
             </>
           )}
-        </div>
-      </Modal>
-
-      {/* Per-document comment modal */}
-      <Modal open={commentTarget !== null} onCancel={() => setCommentTarget(null)} footer={null} title="Commentaire sur le document" width={480}>
-        <div style={{ paddingTop: 8 }}>
-          <div style={{ fontSize: 13, color: 'var(--ih-text-secondary)', marginBottom: 12 }}>{docs.find(d => d.id === commentTarget)?.name}</div>
-          <Input.TextArea value={commentDraft} onChange={e => setCommentDraft(e.target.value)} rows={4} placeholder="Votre commentaire sur ce document…" style={{ marginBottom: 16 }} />
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button onClick={() => setCommentTarget(null)}>Annuler</Button>
-            <Button type="primary" onClick={saveComment} style={{ background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)' }}>Enregistrer</Button>
-          </div>
         </div>
       </Modal>
 
