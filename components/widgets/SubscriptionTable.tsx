@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer, Input, Checkbox } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined, CheckCircleOutlined, AuditOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined, CheckCircleOutlined, AuditOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -369,44 +369,73 @@ function RedemptionHistoryModal({ open, onClose, subscription }: { open: boolean
   );
 }
 
-function SaleProposalSummary({ subscription }: { subscription: Subscription }) {
+function SaleRow({ label, value, highlight, warning }: { label: string; value: string; highlight?: boolean; warning?: boolean }) {
   return (
-    <div style={{ background: 'var(--ih-bg)', border: '1px solid var(--ih-border)', borderRadius: 8, padding: '14px 16px' }}>
-      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ih-text-primary)', marginBottom: 10 }}>Proposition de cession</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: 'var(--ih-text-secondary)' }}>Fonds</span>
-          <span style={{ fontWeight: 600 }}>{subscription.fund}{subscription.part ? ` — ${subscription.part}` : ''}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: 'var(--ih-text-secondary)' }}>Parts proposées</span>
-          <span style={{ fontWeight: 600 }}>{subscription.proposedShares ?? '—'}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: 'var(--ih-text-secondary)' }}>Prix par part</span>
-          <span style={{ fontWeight: 600 }}>{formatEur(subscription.proposedPrice ?? null)}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: 'var(--ih-text-secondary)' }}>Offre valable jusqu&apos;au</span>
-          <span style={{ fontWeight: 600 }}>{subscription.proposedValidUntil ?? '—'}</span>
-        </div>
-        {subscription.proposedPrice && subscription.proposedShares && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--ih-border)', paddingTop: 6, marginTop: 2 }}>
-            <span style={{ color: 'var(--ih-text-secondary)' }}>Montant total estimé</span>
-            <span style={{ fontWeight: 700, color: 'var(--ih-primary)' }}>{formatEur(subscription.proposedPrice * subscription.proposedShares)}</span>
-          </div>
-        )}
-      </div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', borderBottom: '1px solid var(--ih-border)' }}>
+      <span style={{ color: warning ? '#d97706' : 'var(--ih-text-secondary)', fontSize: 13 }}>{label}</span>
+      <span style={{ fontWeight: highlight || warning ? 700 : 600, fontSize: highlight ? 15 : 13, color: warning ? '#d97706' : 'var(--ih-text-primary)' }}>{value}</span>
     </div>
   );
 }
 
+function SaleProposalSummary({ subscription }: { subscription: Subscription }) {
+  const isCall = subscription.fundType === 'call';
+  const calledPct = subscription.amount > 0 ? Math.round((subscription.called / subscription.amount) * 100) : 0;
+  const remainingEngagement = subscription.amount - subscription.called;
+  const engagementPerShare = subscription.shares && subscription.shares > 0 ? remainingEngagement / subscription.shares : 0;
+  const engagementTransferred = engagementPerShare * (subscription.proposedShares ?? 0);
+  const totalToReceive = (subscription.proposedPrice ?? 0) * (subscription.proposedShares ?? 0);
+
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ih-text-primary)', marginBottom: 2 }}>
+        {subscription.fund}{subscription.part ? ` — ${subscription.part}` : ''}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 10 }}>
+        {isCall ? 'Fonds à appel' : 'Paiement direct'}
+      </div>
+      <SaleRow label="Parts proposées à la vente" value={String(subscription.proposedShares ?? '—')} />
+      {subscription.navPerShare && (
+        <SaleRow
+          label={`Valeur par part${subscription.navDate ? ` (${subscription.navDate})` : ''}`}
+          value={formatEur(subscription.navPerShare)}
+          highlight
+        />
+      )}
+      {isCall && (
+        <div style={{ padding: '8px 0', borderBottom: '1px solid var(--ih-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+            <span style={{ color: 'var(--ih-text-secondary)', fontSize: 13 }}>Capital appelé</span>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>{calledPct}%</span>
+          </div>
+          <div style={{ height: 5, background: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ width: `${calledPct}%`, height: '100%', background: 'var(--ih-primary)', borderRadius: 3 }} />
+          </div>
+        </div>
+      )}
+      <SaleRow label="Prix de cession proposé (par part)" value={formatEur(subscription.proposedPrice ?? null)} />
+      <SaleRow label="Montant total à recevoir" value={formatEur(totalToReceive)} highlight />
+      {isCall && engagementTransferred > 0 && (
+        <SaleRow label="Engagement transféré à l'acheteur" value={formatEur(engagementTransferred)} warning />
+      )}
+      <SaleRow label="Offre valable jusqu'au" value={subscription.proposedValidUntil ?? '—'} />
+    </div>
+  );
+}
+
+function maskIban(iban: string): string {
+  const s = iban.replace(/\s/g, '');
+  if (s.length <= 8) return iban;
+  return s.slice(0, 4) + ' •••• •••• •••• ' + s.slice(-4);
+}
+
 function SaleBankingInfo({ subscription }: { subscription: Subscription }) {
+  const [ibanVisible, setIbanVisible] = useState(false);
   if (!subscription.bankIban && !subscription.bankBic && !subscription.bankHolder) return null;
   return (
     <div>
-      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ih-text-primary)', marginBottom: 8 }}>Coordonnées bancaires pour le règlement</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ih-text-primary)', marginBottom: 6 }}>Coordonnées bancaires</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 13 }}>
         {subscription.bankHolder && (
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--ih-text-secondary)' }}>Titulaire</span>
@@ -414,14 +443,25 @@ function SaleBankingInfo({ subscription }: { subscription: Subscription }) {
           </div>
         )}
         {subscription.bankIban && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: 'var(--ih-text-secondary)' }}>IBAN</span>
-            <span style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 12 }}>{subscription.bankIban}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 12 }}>
+                {ibanVisible ? subscription.bankIban : maskIban(subscription.bankIban)}
+              </span>
+              <Button
+                type="text"
+                size="small"
+                icon={ibanVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                onClick={() => setIbanVisible(v => !v)}
+                style={{ color: 'var(--ih-text-secondary)', padding: '0 2px', height: 'auto' }}
+              />
+            </div>
           </div>
         )}
         {subscription.bankBic && (
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--ih-text-secondary)' }}>BIC / SWIFT</span>
+            <span style={{ color: 'var(--ih-text-secondary)' }}>BIC</span>
             <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{subscription.bankBic}</span>
           </div>
         )}
@@ -443,19 +483,15 @@ function SaleValidationDirectModal({ open, onClose, subscription }: { open: bool
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8 }}>
         <SaleProposalSummary subscription={subscription} />
 
-        <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
-          <strong>Conditions :</strong> En validant, vous autorisez votre conseiller à mettre en vente vos parts sur le marché secondaire. La cession sera effective à la conclusion d&apos;une transaction avec un acheteur tiers. Vous pouvez annuler jusqu&apos;à la signature du bulletin de cession.
+        <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', lineHeight: 1.5 }}>
+          En validant, vous autorisez la mise en vente. La cession sera effective à la signature du bulletin. Annulation possible jusqu&apos;à ce moment.
         </div>
 
         <SaleBankingInfo subscription={subscription} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--ih-border)', paddingTop: 14 }}>
-          <Button type="primary" style={{ width: '100%' }} onClick={onClose}>
-            Valider la mise en vente
-          </Button>
-          <Button style={{ width: '100%' }} onClick={onClose}>
-            Refuser
-          </Button>
+          <Button type="primary" style={{ width: '100%' }} onClick={onClose}>Valider la mise en vente</Button>
+          <Button style={{ width: '100%' }} onClick={onClose}>Refuser</Button>
         </div>
       </div>
     </Modal>
@@ -487,36 +523,29 @@ function SaleValidationCallModal({ open, onClose, subscription }: { open: boolea
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8 }}>
         <SaleProposalSummary subscription={subscription} />
 
-        <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '14px 16px', fontSize: 12, lineHeight: 1.6 }}>
-          <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 10, fontSize: 13 }}>⚠ Transfert d&apos;engagement résiduel</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, color: '#78350f', marginBottom: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Engagement résiduel sur vos parts</span>
-              <strong>{formatEur(remainingEngagement)}</strong>
-            </div>
+        <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '12px 14px', fontSize: 12 }}>
+          <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 8, fontSize: 13 }}>⚠ Engagement résiduel transféré à l&apos;acheteur</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#78350f', marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Engagement par part</span>
               <strong>{formatEur(engagementPerShare)}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #FCD34D', paddingTop: 5, marginTop: 2 }}>
-              <span>Engagement transféré à l&apos;acheteur ({subscription.proposedShares} parts)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #FCD34D', paddingTop: 4, marginTop: 2 }}>
+              <span>Total transféré ({subscription.proposedShares} parts)</span>
               <strong>{formatEur(engagementTransferred)}</strong>
             </div>
-          </div>
-          <div style={{ color: '#92400e', marginBottom: 12 }}>
-            L&apos;acheteur reprend cet engagement et sera sollicité pour les appels de fonds futurs à votre place. Vous ne serez plus redevable de ces appels sur les parts cédées à compter de la signature du bulletin de cession.
           </div>
           <Checkbox
             checked={engagementConfirmed}
             onChange={e => setEngagementConfirmed(e.target.checked)}
             style={{ fontSize: 12, color: '#92400e' }}
           >
-            Je comprends que l&apos;acheteur reprend mon engagement résiduel de <strong>{formatEur(engagementTransferred)}</strong> et sera sollicité pour les appels futurs à ma place.
+            Je comprends que l&apos;acheteur reprend <strong>{formatEur(engagementTransferred)}</strong> d&apos;engagement et sera sollicité pour les appels futurs à ma place.
           </Checkbox>
         </div>
 
-        <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
-          <strong>Conditions :</strong> En validant, vous autorisez votre conseiller à mettre en vente vos parts sur le marché secondaire. La cession sera effective à la conclusion d&apos;une transaction avec un acheteur tiers. Vous pouvez annuler jusqu&apos;à la signature du bulletin de cession.
+        <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', lineHeight: 1.5 }}>
+          En validant, vous autorisez la mise en vente. La cession sera effective à la signature du bulletin. Annulation possible jusqu&apos;à ce moment.
         </div>
 
         <SaleBankingInfo subscription={subscription} />
