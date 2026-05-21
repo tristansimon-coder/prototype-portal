@@ -471,11 +471,19 @@ function SaleBankingInfo({ subscription }: { subscription: Subscription }) {
 }
 
 function SaleValidationDirectModal({ open, onClose, subscription }: { open: boolean; onClose: () => void; subscription: Subscription | null }) {
+  const [bankingConfirmed, setBankingConfirmed] = useState(false);
+
   if (!subscription) return null;
+
+  function handleClose() {
+    setBankingConfirmed(false);
+    onClose();
+  }
+
   return (
     <Modal
       open={open}
-      onCancel={onClose}
+      onCancel={handleClose}
       footer={null}
       title="Votre CGP vous propose de mettre en vente vos parts"
       width={520}
@@ -489,9 +497,17 @@ function SaleValidationDirectModal({ open, onClose, subscription }: { open: bool
 
         <SaleBankingInfo subscription={subscription} />
 
+        <Checkbox
+          checked={bankingConfirmed}
+          onChange={e => setBankingConfirmed(e.target.checked)}
+          style={{ fontSize: 12 }}
+        >
+          Je confirme que les coordonnées bancaires ci-dessus sont correctes.
+        </Checkbox>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--ih-border)', paddingTop: 14 }}>
-          <Button type="primary" style={{ width: '100%' }} onClick={onClose}>Valider la mise en vente</Button>
-          <Button style={{ width: '100%' }} onClick={onClose}>Refuser</Button>
+          <Button type="primary" style={{ width: '100%' }} disabled={!bankingConfirmed} onClick={handleClose}>Valider la mise en vente</Button>
+          <Button style={{ width: '100%' }} onClick={handleClose}>Refuser</Button>
         </div>
       </div>
     </Modal>
@@ -500,6 +516,7 @@ function SaleValidationDirectModal({ open, onClose, subscription }: { open: bool
 
 function SaleValidationCallModal({ open, onClose, subscription }: { open: boolean; onClose: () => void; subscription: Subscription | null }) {
   const [engagementConfirmed, setEngagementConfirmed] = useState(false);
+  const [bankingConfirmed, setBankingConfirmed] = useState(false);
 
   if (!subscription) return null;
 
@@ -509,6 +526,7 @@ function SaleValidationCallModal({ open, onClose, subscription }: { open: boolea
 
   function handleClose() {
     setEngagementConfirmed(false);
+    setBankingConfirmed(false);
     onClose();
   }
 
@@ -550,8 +568,16 @@ function SaleValidationCallModal({ open, onClose, subscription }: { open: boolea
 
         <SaleBankingInfo subscription={subscription} />
 
+        <Checkbox
+          checked={bankingConfirmed}
+          onChange={e => setBankingConfirmed(e.target.checked)}
+          style={{ fontSize: 12 }}
+        >
+          Je confirme que les coordonnées bancaires ci-dessus sont correctes.
+        </Checkbox>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--ih-border)', paddingTop: 14 }}>
-          <Button type="primary" style={{ width: '100%' }} disabled={!engagementConfirmed} onClick={handleClose}>
+          <Button type="primary" style={{ width: '100%' }} disabled={!engagementConfirmed || !bankingConfirmed} onClick={handleClose}>
             Valider la mise en vente
           </Button>
           <Button style={{ width: '100%' }} onClick={handleClose}>
