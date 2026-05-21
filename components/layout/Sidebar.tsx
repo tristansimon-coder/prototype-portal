@@ -42,11 +42,14 @@ export function Sidebar() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '0 0 16px 0' }}>
       {/* Logo */}
-      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ color: 'white', fontWeight: 700, fontSize: 20, letterSpacing: '-0.5px' }}>
-          InvestHub<sup style={{ fontSize: 10 }}>®</sup>
-        </div>
-        <div style={{ color: 'var(--ih-accent)', fontSize: 11, marginTop: 2, fontWeight: 500 }}>
+      <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://investhub.dev.investhub.cloud/applogo/19/1765536085-logo_entier.png"
+          alt="InvestHub"
+          style={{ height: 32, width: 'auto', display: 'block' }}
+        />
+        <div style={{ color: 'var(--ih-accent)', fontSize: 11, marginTop: 4, fontWeight: 500 }}>
           Prototype
         </div>
       </div>
