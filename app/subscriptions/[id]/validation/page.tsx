@@ -10,6 +10,15 @@ import { VALIDATION_PAGE_CODE } from '@/lib/code-sources';
 
 type FieldStatus = 'pending' | 'approved' | 'rejected';
 
+interface RejectedItem {
+  key: string;
+  sectionTitle: string;
+  label: string;
+  sublabel?: string;
+}
+
+function getFieldKey(sectionId: string, index: number) { return `${sectionId}-${index}`; }
+
 function formatEur(value: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 }
@@ -34,8 +43,17 @@ export default function ValidationPage() {
   const subscription = subscriptions.find(s => s.id === id);
 
   const [fieldStatuses, setFieldStatuses] = useState<Record<string, FieldStatus>>({});
+  const [fieldRejectReasons, setFieldRejectReasons] = useState<Record<string, string>>({});
+
+  // Reject reason modal
+  const [rejectTarget, setRejectTarget] = useState<{ key: string; sectionTitle: string; label: string; sublabel?: string } | null>(null);
+  const [rejectDraft, setRejectDraft] = useState('');
+
+  // Reopen KYC modal
   const [reopenOpen, setReopenOpen] = useState(false);
-  const [reopenMessage, setReopenMessage] = useState('');
+  const [reopenReasonDrafts, setReopenReasonDrafts] = useState<Record<string, string>>({});
+  const [reopenGlobalMessage, setReopenGlobalMessage] = useState('');
+
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [codeOpen, setCodeOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -80,6 +98,35 @@ export default function ValidationPage() {
     return validation.sections.reduce((sum, s) => sum + s.fields.length, 0) + docs.length;
   }, [validation, docs]);
 
+  const rejectedItems = useMemo((): RejectedItem[] => {
+    if (!validation) return [];
+    const items: RejectedItem[] = [];
+    for (const section of validation.sections) {
+      for (let i = 0; i < section.fields.length; i++) {
+        const key = getFieldKey(section.id, i);
+        if ((fieldStatuses[key] ?? 'pending') === 'rejected') {
+          items.push({ key, sectionTitle: section.title, label: section.fields[i].question, sublabel: section.fields[i].answer });
+        }
+      }
+    }
+    for (const doc of docs) {
+      const key = `doc-${doc.id}`;
+      if ((fieldStatuses[key] ?? 'pending') === 'rejected') {
+        items.push({ key, sectionTitle: 'Documents', label: doc.name });
+      }
+    }
+    return items;
+  }, [validation, fieldStatuses, docs]);
+
+  const rejectedBySectionTitle = useMemo(() => {
+    const groups: Record<string, RejectedItem[]> = {};
+    for (const item of rejectedItems) {
+      if (!groups[item.sectionTitle]) groups[item.sectionTitle] = [];
+      groups[item.sectionTitle].push(item);
+    }
+    return groups;
+  }, [rejectedItems]);
+
   useEffect(() => {
     if (!validation) return;
     const observers: IntersectionObserver[] = [];
@@ -106,10 +153,26 @@ export default function ValidationPage() {
     );
   }
 
-  function getFieldKey(sectionId: string, index: number) { return `${sectionId}-${index}`; }
-
   function setFieldStatus(key: string, next: FieldStatus) {
     setFieldStatuses(prev => ({ ...prev, [key]: next }));
+  }
+
+  function handleRejectClick(key: string, sectionTitle: string, label: string, sublabel?: string) {
+    const current = fieldStatuses[key] ?? 'pending';
+    if (current === 'rejected') {
+      setFieldStatus(key, 'pending');
+    } else {
+      setRejectTarget({ key, sectionTitle, label, sublabel });
+      setRejectDraft(fieldRejectReasons[key] ?? '');
+    }
+  }
+
+  function confirmReject() {
+    if (!rejectTarget) return;
+    setFieldStatus(rejectTarget.key, 'rejected');
+    setFieldRejectReasons(prev => ({ ...prev, [rejectTarget.key]: rejectDraft }));
+    setRejectTarget(null);
+    setRejectDraft('');
   }
 
   function validateSection(sectionId: string, fieldCount: number) {
@@ -128,9 +191,18 @@ export default function ValidationPage() {
     sectionRefs.current[sectionId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  function openReopen() {
+    const drafts: Record<string, string> = {};
+    for (const item of rejectedItems) drafts[item.key] = fieldRejectReasons[item.key] ?? '';
+    setReopenReasonDrafts(drafts);
+    setReopenGlobalMessage('');
+    setReopenOpen(true);
+  }
+
   function handleReopen() {
+    // Persist edited reasons back
+    setFieldRejectReasons(prev => ({ ...prev, ...reopenReasonDrafts }));
     setReopenOpen(false);
-    setReopenMessage('');
     router.push(`/subscriptions?persona=${persona}`);
   }
 
@@ -324,14 +396,27 @@ export default function ValidationPage() {
                     const key = getFieldKey(section.id, index);
                     const status = fieldStatuses[key] ?? 'pending';
                     const isRejected = status === 'rejected';
+                    const reason = fieldRejectReasons[key];
                     return (
-                      <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 140px', padding: '12px 20px', borderBottom: index < section.fields.length - 1 ? '1px solid var(--ih-border)' : 'none', alignItems: 'center', transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}>
-                        <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-secondary)' }}>{field.question}</span>
-                        <span style={{ fontSize: 13.5, color: 'var(--ih-text-primary)', fontWeight: 500 }}>{field.answer}</span>
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                          <CheckCircleFilled style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')} />
-                          <CloseCircleFilled style={{ fontSize: 20, color: status === 'rejected' ? '#ef4444' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => setFieldStatus(key, status === 'rejected' ? 'pending' : 'rejected')} />
+                      <div key={index} style={{ borderBottom: index < section.fields.length - 1 ? '1px solid var(--ih-border)' : 'none' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 3fr 140px', padding: '12px 20px', alignItems: 'center', transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}>
+                          <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-secondary)' }}>{field.question}</span>
+                          <span style={{ fontSize: 13.5, color: 'var(--ih-text-primary)', fontWeight: 500 }}>{field.answer}</span>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                            {isRejected && reason && (
+                              <Tooltip title={reason}>
+                                <MessageOutlined style={{ fontSize: 14, color: '#ef4444', cursor: 'default' }} />
+                              </Tooltip>
+                            )}
+                            <CheckCircleFilled style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')} />
+                            <CloseCircleFilled style={{ fontSize: 20, color: isRejected ? '#ef4444' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => handleRejectClick(key, section.title, field.question, field.answer)} />
+                          </div>
                         </div>
+                        {isRejected && reason && (
+                          <div style={{ padding: '6px 20px 10px', background: 'rgba(239,68,68,0.04)' }}>
+                            <span style={{ fontSize: 12, color: '#dc2626', fontStyle: 'italic' }}>Motif : {reason}</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -383,41 +468,49 @@ export default function ValidationPage() {
                     const isRejected = status === 'rejected';
                     const hasComment = !!docComments[doc.id];
                     const replacedName = replacedDocs[doc.id];
+                    const reason = fieldRejectReasons[key];
                     return (
-                      <div key={doc.id} style={{ display: 'grid', gridTemplateColumns: DOC_GRID, padding: '12px 20px', borderBottom: index < docs.length - 1 ? '1px solid var(--ih-border)' : 'none', alignItems: 'center', transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}>
-                        <div style={{ paddingRight: 12 }}>
-                          <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-primary)', fontWeight: 500 }}>{doc.name}</span>
-                          {replacedName && (
-                            <div style={{ fontSize: 11.5, color: '#059669', marginTop: 2 }}>✓ Remplacé : {replacedName}</div>
-                          )}
+                      <div key={doc.id} style={{ borderBottom: index < docs.length - 1 ? '1px solid var(--ih-border)' : 'none' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: DOC_GRID, padding: '12px 20px', alignItems: 'center', transition: 'background 0.1s' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--ih-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--ih-bg-card)')}>
+                          <div style={{ paddingRight: 12 }}>
+                            <span style={{ fontSize: 13.5, color: isRejected ? '#dc2626' : 'var(--ih-text-primary)', fontWeight: 500 }}>{doc.name}</span>
+                            {replacedName && (
+                              <div style={{ fontSize: 11.5, color: '#059669', marginTop: 2 }}>✓ Remplacé : {replacedName}</div>
+                            )}
+                          </div>
+                          <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>{doc.sentAt}</span>
+                          <span style={{ fontSize: 13, color: doc.expired ? '#dc2626' : 'var(--ih-text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                            {doc.expired && <WarningFilled style={{ color: '#f59e0b', fontSize: 13 }} />}
+                            {doc.expiresAt ?? '—'}
+                          </span>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button size="small" icon={<DownloadOutlined />} style={{ fontSize: 12, color: 'var(--ih-primary)', borderColor: 'var(--ih-border)', background: 'var(--ih-bg)' }}>Télécharger</Button>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <Upload
+                              beforeUpload={file => {
+                                setReplacedDocs(prev => ({ ...prev, [doc.id]: file.name }));
+                                return false;
+                              }}
+                              showUploadList={false}
+                              accept="*/*"
+                            >
+                              <Button size="small" icon={<UploadOutlined />} style={{ fontSize: 12, color: 'var(--ih-primary)', borderColor: 'var(--ih-border)', background: 'var(--ih-bg)' }}>Remplacer</Button>
+                            </Upload>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <Tooltip title={hasComment ? docComments[doc.id] : 'Ajouter un commentaire'}>
+                              <MessageOutlined style={{ fontSize: 17, color: hasComment ? 'var(--ih-primary)' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => openComment(doc.id)} />
+                            </Tooltip>
+                            <CheckCircleFilled style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')} />
+                            <CloseCircleFilled style={{ fontSize: 20, color: isRejected ? '#ef4444' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => handleRejectClick(key, 'Documents', doc.name)} />
+                          </div>
                         </div>
-                        <span style={{ fontSize: 13, color: 'var(--ih-text-secondary)' }}>{doc.sentAt}</span>
-                        <span style={{ fontSize: 13, color: doc.expired ? '#dc2626' : 'var(--ih-text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                          {doc.expired && <WarningFilled style={{ color: '#f59e0b', fontSize: 13 }} />}
-                          {doc.expiresAt ?? '—'}
-                        </span>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                          <Button size="small" icon={<DownloadOutlined />} style={{ fontSize: 12, color: 'var(--ih-primary)', borderColor: 'var(--ih-border)', background: 'var(--ih-bg)' }}>Télécharger</Button>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                          <Upload
-                            beforeUpload={file => {
-                              setReplacedDocs(prev => ({ ...prev, [doc.id]: file.name }));
-                              return false;
-                            }}
-                            showUploadList={false}
-                            accept="*/*"
-                          >
-                            <Button size="small" icon={<UploadOutlined />} style={{ fontSize: 12, color: 'var(--ih-primary)', borderColor: 'var(--ih-border)', background: 'var(--ih-bg)' }}>Remplacer</Button>
-                          </Upload>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-                          <Tooltip title={hasComment ? docComments[doc.id] : 'Ajouter un commentaire'}>
-                            <MessageOutlined style={{ fontSize: 17, color: hasComment ? 'var(--ih-primary)' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => openComment(doc.id)} />
-                          </Tooltip>
-                          <CheckCircleFilled style={{ fontSize: 20, color: status === 'approved' ? '#10b981' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => setFieldStatus(key, status === 'approved' ? 'pending' : 'approved')} />
-                          <CloseCircleFilled style={{ fontSize: 20, color: status === 'rejected' ? '#ef4444' : '#d1d5db', cursor: 'pointer', transition: 'color 0.15s' }} onClick={() => setFieldStatus(key, status === 'rejected' ? 'pending' : 'rejected')} />
-                        </div>
+                        {isRejected && reason && (
+                          <div style={{ padding: '6px 20px 10px', background: 'rgba(239,68,68,0.04)' }}>
+                            <span style={{ fontSize: 12, color: '#dc2626', fontStyle: 'italic' }}>Motif : {reason}</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -427,25 +520,115 @@ export default function ValidationPage() {
           })()}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-            <Button onClick={() => setReopenOpen(true)} style={{ background: '#e05c6a', borderColor: '#e05c6a', color: '#fff', fontWeight: 600 }}>Rouvrir le KYC</Button>
+            <Button onClick={openReopen} style={{ background: '#e05c6a', borderColor: '#e05c6a', color: '#fff', fontWeight: 600 }}>Rouvrir le KYC</Button>
             <Button onClick={() => router.push(`/subscriptions?persona=${persona}`)} style={{ background: 'linear-gradient(62deg, var(--ih-primary) 10%, var(--ih-primary-light) 89%)', borderColor: 'transparent', color: '#fff', fontWeight: 600 }}>Valider le KYC</Button>
           </div>
         </div>
       </div>
 
-      {/* Reopen KYC modal */}
-      <Modal open={reopenOpen} onCancel={() => setReopenOpen(false)} footer={null} closable={false} width={580}>
-        <div>
-          <p style={{ fontSize: 13, color: 'var(--ih-text-secondary)', marginBottom: 20, lineHeight: 1.7 }}>
-            Les questions et documents non valides seront repris dans le courriel envoyé à l&apos;investisseur.
-            Vous pouvez ajouter un message général et un message spécifique par question
-            pour favoriser la correction du dossier.
-          </p>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 6 }}>Message :</div>
-            <Input.TextArea value={reopenMessage} onChange={e => setReopenMessage(e.target.value)} rows={4} style={{ width: '100%' }} />
+      {/* Modal motif de refus */}
+      <Modal
+        open={rejectTarget !== null}
+        onCancel={() => setRejectTarget(null)}
+        footer={null}
+        title="Motif de refus"
+        width={520}
+      >
+        {rejectTarget && (
+          <div style={{ paddingTop: 8 }}>
+            <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{rejectTarget.sectionTitle}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#dc2626' }}>{rejectTarget.label}</div>
+              {rejectTarget.sublabel && <div style={{ fontSize: 12.5, color: 'var(--ih-text-secondary)', marginTop: 2 }}>{rejectTarget.sublabel}</div>}
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', marginBottom: 8 }}>Motif à communiquer à l&apos;investisseur</div>
+              <Input.TextArea
+                value={rejectDraft}
+                onChange={e => setRejectDraft(e.target.value)}
+                rows={4}
+                placeholder="Ex : La pièce d'identité fournie est expirée. Merci de transmettre un document en cours de validité."
+                autoFocus
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <Button onClick={() => setRejectTarget(null)}>Annuler</Button>
+              <Button
+                type="primary"
+                onClick={confirmReject}
+                style={{ background: '#e05c6a', borderColor: '#e05c6a', fontWeight: 600 }}
+              >
+                Confirmer le refus
+              </Button>
+            </div>
           </div>
-          <Button type="primary" onClick={handleReopen} style={{ width: '100%', background: 'var(--ih-primary)', borderColor: 'var(--ih-primary)', fontWeight: 600, height: 44 }}>Rouvrir le KYC</Button>
+        )}
+      </Modal>
+
+      {/* Modal Rouvrir le KYC — récapitulatif des refus */}
+      <Modal
+        open={reopenOpen}
+        onCancel={() => setReopenOpen(false)}
+        footer={null}
+        title="Rouvrir le KYC"
+        width={640}
+      >
+        <div style={{ paddingTop: 8 }}>
+          {rejectedItems.length === 0 ? (
+            <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ih-text-secondary)', fontSize: 13 }}>
+              Aucun champ refusé. Marquez des champs comme refusés avant de rouvrir le KYC.
+            </div>
+          ) : (
+            <>
+              <p style={{ fontSize: 13, color: 'var(--ih-text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
+                Un email sera envoyé à l&apos;investisseur avec le détail des corrections attendues.
+                Vous pouvez ajuster les motifs de refus avant envoi.
+              </p>
+
+              <div style={{ maxHeight: 380, overflowY: 'auto', marginBottom: 20, paddingRight: 4 }}>
+                {Object.entries(rejectedBySectionTitle).map(([sectionTitle, items]) => (
+                  <div key={sectionTitle} style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ih-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid var(--ih-border)' }}>
+                      {sectionTitle} · {items.length} refus
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {items.map(item => (
+                        <div key={item.key} style={{ padding: '12px 14px', background: 'var(--ih-bg)', borderRadius: 8, border: '1px solid var(--ih-border)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#dc2626', marginBottom: 2 }}>{item.label}</div>
+                          {item.sublabel && <div style={{ fontSize: 12, color: 'var(--ih-text-secondary)', marginBottom: 8 }}>{item.sublabel}</div>}
+                          <Input.TextArea
+                            value={reopenReasonDrafts[item.key] ?? ''}
+                            onChange={e => setReopenReasonDrafts(prev => ({ ...prev, [item.key]: e.target.value }))}
+                            rows={2}
+                            placeholder="Motif de refus…"
+                            style={{ fontSize: 12, marginTop: item.sublabel ? 0 : 8 }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginBottom: 20, padding: '14px 16px', background: 'var(--ih-bg)', borderRadius: 8, border: '1px solid var(--ih-border)' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ih-text-primary)', marginBottom: 8 }}>Message général (optionnel)</div>
+                <Input.TextArea
+                  value={reopenGlobalMessage}
+                  onChange={e => setReopenGlobalMessage(e.target.value)}
+                  rows={3}
+                  placeholder="Message d'accompagnement général pour l'investisseur…"
+                />
+              </div>
+
+              <Button
+                type="primary"
+                onClick={handleReopen}
+                style={{ width: '100%', background: '#e05c6a', borderColor: '#e05c6a', fontWeight: 600, height: 44 }}
+              >
+                Envoyer la demande de correction ({rejectedItems.length} point{rejectedItems.length > 1 ? 's' : ''})
+              </Button>
+            </>
+          )}
         </div>
       </Modal>
 
@@ -462,12 +645,7 @@ export default function ValidationPage() {
       </Modal>
 
       {/* Code viewer drawer */}
-      <Drawer
-        open={codeOpen}
-        onClose={() => setCodeOpen(false)}
-        title="Code — ValidationPage"
-        width={720}
-      >
+      <Drawer open={codeOpen} onClose={() => setCodeOpen(false)} title="Code — ValidationPage" width={720}>
         <SyntaxHighlighter language="tsx" style={oneLight} customStyle={{ fontSize: 12 }}>
           {VALIDATION_PAGE_CODE}
         </SyntaxHighlighter>
