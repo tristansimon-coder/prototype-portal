@@ -6,6 +6,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   study: { label: 'Étude du dossier', color: 'purple' },
   valid: { label: 'Valide', color: 'success' },
   sale_to_validate: { label: 'Mise en vente proposée', color: 'warning' },
+  payment_pending: { label: 'En attente de paiement', color: 'blue' },
   rejected: { label: 'Refusée', color: 'error' },
   draft: { label: 'Brouillon', color: 'default' },
 };

@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Table, Select, Button, Typography, ConfigProvider, Modal, InputNumber, DatePicker, Dropdown, Upload, message, Drawer, Input, Checkbox } from 'antd';
 import type { MenuProps } from 'antd';
-import { UserOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined, CheckCircleOutlined, AuditOutlined } from '@ant-design/icons';
+import { UserOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, DeleteOutlined, MoreOutlined, ShoppingOutlined, UploadOutlined, LinkOutlined, CodeOutlined, HistoryOutlined, RollbackOutlined, DownloadOutlined, CheckCircleOutlined, AuditOutlined, DollarOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -589,6 +589,77 @@ function SaleValidationCallModal({ open, onClose, subscription }: { open: boolea
   );
 }
 
+function PaymentConfirmLPModal({ open, onClose, subscription }: { open: boolean; onClose: () => void; subscription: Subscription | null }) {
+  if (!subscription) return null;
+  const totalToReceive = (subscription.proposedPrice ?? 0) * (subscription.proposedShares ?? 0);
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      title="Confirmer la réception du paiement"
+      width={480}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8 }}>
+        <SaleProposalSummary subscription={subscription} />
+        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#1e40af', lineHeight: 1.6 }}>
+          Le paiement de <strong>{formatEur(totalToReceive)}</strong> devrait avoir été effectué par l&apos;acheteur sur vos coordonnées bancaires ci-dessous.
+        </div>
+        <SaleBankingInfo subscription={subscription} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--ih-border)', paddingTop: 14 }}>
+          <Button type="primary" style={{ width: '100%' }} onClick={onClose}>Oui, j&apos;ai reçu le paiement</Button>
+          <Button style={{ width: '100%' }} onClick={onClose}>Non, pas encore</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function PaymentConfirmCGPModal({ open, onClose, subscription }: { open: boolean; onClose: () => void; subscription: Subscription | null }) {
+  const [justificatif, setJustificatif] = useState<File | null>(null);
+
+  if (!subscription) return null;
+
+  function handleClose() {
+    setJustificatif(null);
+    onClose();
+  }
+
+  return (
+    <Modal
+      open={open}
+      onCancel={handleClose}
+      footer={null}
+      title="Valider la réception du paiement"
+      width={520}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8 }}>
+        <SaleProposalSummary subscription={subscription} />
+        <div style={{ fontSize: 13, color: 'var(--ih-text-secondary)', lineHeight: 1.6 }}>
+          Confirmez-vous que le paiement a bien été reçu par le vendeur ?
+        </div>
+        <SaleBankingInfo subscription={subscription} />
+        <Field label="Justificatif (optionnel)">
+          <Upload
+            maxCount={1}
+            beforeUpload={file => { setJustificatif(file); return false; }}
+            onRemove={() => setJustificatif(null)}
+            accept=".pdf,.jpg,.jpeg,.png"
+          >
+            <Button icon={<UploadOutlined />}>
+              {justificatif ? justificatif.name : 'Déposer un justificatif'}
+            </Button>
+          </Upload>
+        </Field>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--ih-border)', paddingTop: 14 }}>
+          <Button type="primary" style={{ width: '100%' }} onClick={handleClose}>Confirmer le paiement</Button>
+          <Button style={{ width: '100%' }} onClick={handleClose}>Annuler</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const [fundFilter, setFundFilter] = useState<string | undefined>(undefined);
   const [partFilter, setPartFilter] = useState<string | undefined>(undefined);
@@ -607,6 +678,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
   const redeemTarget = modalType === 'redeem' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
   const historyTarget = modalType === 'redemption-history' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
   const saleValidationTarget = modalType === 'sale-validation' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
+  const paymentTarget = modalType === 'payment-confirm' && modalId ? (data.find(d => d.id === modalId) ?? null) : null;
 
   function openModal(type: string, record: Subscription) {
     const params = new URLSearchParams(searchParams.toString());
@@ -758,6 +830,23 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
               Validation requise
             </span>
           )}
+          {!isDistributor && v === 'payment_pending' && (
+            <span
+              onClick={() => openModal('payment-confirm', record)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                color: '#1d4ed8',
+                background: 'rgba(59,130,246,0.1)',
+                border: '1px solid rgba(59,130,246,0.4)',
+                borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap',
+                letterSpacing: '0.01em',
+              }}
+            >
+              <DollarOutlined style={{ fontSize: 10 }} />
+              Paiement à confirmer
+            </span>
+          )}
         </div>
       ),
     },
@@ -792,13 +881,19 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
           { key: 'sale-validation', label: 'Valider la mise en vente', icon: <CheckCircleOutlined />, onClick: () => openModal('sale-validation', record) },
           { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
         ];
+        const paymentItems: MenuProps['items'] = [
+          { key: 'payment-confirm', label: 'Valider le paiement', icon: <DollarOutlined />, onClick: () => openModal('payment-confirm', record) },
+          { key: 'view', label: 'Voir', icon: <EyeOutlined /> },
+        ];
         const items = record.status === 'valid'
           ? validItems
           : (isDistributor && record.status === 'study')
             ? studyItems
             : (!isDistributor && record.status === 'sale_to_validate')
               ? saleValidateItems
-              : otherItems;
+              : (isDistributor && record.status === 'payment_pending')
+                ? paymentItems
+                : otherItems;
         return (
           <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
             <Button type="text" icon={<MoreOutlined />} size="small" />
@@ -845,6 +940,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
             { value: 'study', label: 'Étude du dossier' },
             { value: 'valid', label: 'Valide' },
             { value: 'sale_to_validate', label: 'Mise en vente proposée' },
+            { value: 'payment_pending', label: 'En attente de paiement' },
           ]}
         />
         <div style={{ marginLeft: 'auto' }}>
@@ -913,6 +1009,16 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
         open={saleValidationTarget !== null && saleValidationTarget?.fundType === 'call'}
         onClose={closeModal}
         subscription={saleValidationTarget}
+      />
+      <PaymentConfirmLPModal
+        open={paymentTarget !== null && !isDistributor}
+        onClose={closeModal}
+        subscription={paymentTarget}
+      />
+      <PaymentConfirmCGPModal
+        open={paymentTarget !== null && isDistributor}
+        onClose={closeModal}
+        subscription={paymentTarget}
       />
     </div>
   );
