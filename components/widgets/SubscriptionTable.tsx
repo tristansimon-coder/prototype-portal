@@ -830,7 +830,7 @@ export function SubscriptionTable({ data }: SubscriptionTableProps) {
               Validation requise
             </span>
           )}
-          {!isDistributor && v === 'payment_pending' && (
+          {v === 'payment_pending' && (
             <span
               onClick={() => openModal('payment-confirm', record)}
               style={{
